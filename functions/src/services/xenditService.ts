@@ -1,40 +1,39 @@
-// functions/src/services/xenditService.ts
-
 import axios from "axios";
 import * as admin from "firebase-admin";
 import * as dotenv from "dotenv";
+import * as functions from "firebase-functions";
 
+// Load .env for local dev
 dotenv.config();
 
-const XENDIT_SECRET_KEY = process.env.XENDIT_SECRET_KEY ?? "";
-if (!XENDIT_SECRET_KEY) {
-  throw new Error("❌ XENDIT_SECRET_KEY is missing in environment variables.");
+function getXenditSecretKey(): string {
+  return (
+      process.env.XENDIT_SECRET_KEY || // ✅ Local dev via .env
+      functions.config().xendit?.secret_key || // ✅ Firebase functions config
+      (() => {
+        throw new Error("❌ XENDIT_SECRET_KEY is missing in environment variables.");
+      })()
+  );
 }
 
 /**
  * ✅ Create a Customer in Xendit
- * @param {string} userId - Firebase user ID
- * @param {string} email - Customer's email
- * @param {string} firstName - Customer's first name
- * @param {string} lastName - Customer's last name
- * @param {string} phoneNumber - Customer's phone number
- * @returns {Promise<any>} - Returns Xendit customer object
  */
 export const createXenditCustomer = async (
-  userId: string,
-  email: string,
-  firstName: string,
-  lastName: string,
-  phoneNumber: string
-) => {
+    userId: string,
+    email: string,
+    firstName: string,
+    lastName: string,
+    phoneNumber: string
+): Promise<any> => {
   try {
     const referenceId = `customer-${userId}`;
 
     const requestBody = {
-      type: "INDIVIDUAL", // ✅ Required field
+      type: "INDIVIDUAL",
       reference_id: referenceId,
       email,
-      mobile_number: phoneNumber, // ✅ Keeping mobile_number
+      mobile_number: phoneNumber,
       individual_detail: {
         given_names: firstName,
         surname: lastName,
@@ -44,16 +43,15 @@ export const createXenditCustomer = async (
     console.log("📌 Sending request to Xendit:", requestBody);
 
     const response = await axios.post(
-      "https://api.xendit.co/customers",
-      requestBody,
-      {
-        auth: { username: XENDIT_SECRET_KEY, password: "" },
-      }
+        "https://api.xendit.co/customers",
+        requestBody,
+        {
+          auth: { username: getXenditSecretKey(), password: "" },
+        }
     );
 
     console.log("✅ Xendit Customer Created:", response.data);
 
-    // ✅ Store Xendit Customer ID in Firestore
     await admin.firestore().collection("users").doc(userId).update({
       xenditCustomerId: response.data.id,
       xenditReferenceId: response.data.reference_id,
@@ -63,8 +61,8 @@ export const createXenditCustomer = async (
     return response.data;
   } catch (error: any) {
     console.error(
-      "❌ Error creating Xendit customer:",
-      error.response?.data || error.message
+        "❌ Error creating Xendit customer:",
+        error.response?.data || error.message
     );
     throw error;
   }
@@ -82,7 +80,6 @@ export const handleXenditWebhook = async (webhookData: any) => {
       return;
     }
 
-    // ✅ Extract userId from reference_id
     const referenceId = webhookData.reference_id;
     if (!referenceId || !referenceId.startsWith("customer-")) {
       console.error("❌ Invalid reference ID format:", referenceId);
@@ -91,7 +88,6 @@ export const handleXenditWebhook = async (webhookData: any) => {
 
     const userId = referenceId.replace("customer-", "");
 
-    // ✅ Fetch User Data from Firestore
     const userRef = admin.firestore().collection("users").doc(userId);
     const userSnapshot = await userRef.get();
 
@@ -108,7 +104,6 @@ export const handleXenditWebhook = async (webhookData: any) => {
 
     const newBalance = (userData?.walletBalance || 0) + webhookData.amount;
 
-    // ✅ Update Wallet Balance in Firestore
     await userRef.update({
       walletBalance: newBalance,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),

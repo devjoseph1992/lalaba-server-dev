@@ -1,54 +1,31 @@
-// services/riderLocation.ts
-import * as functions from "firebase-functions";
+import * as functionsV1 from "firebase-functions/v1";
 import * as admin from "firebase-admin";
-import { Change } from "firebase-functions";
 
-// Ensure Firebase Admin SDK initialized once
+// Ensure Firebase Admin SDK is initialized once
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-export const onRiderLocationUpdate = functions.database
-  .ref("/riderLocations/{orderId}")
-  .onWrite(async (change: Change<any>, context) => {
-    const orderId = context.params.orderId;
-    const location = change.after.val();
+export const onRiderLocationUpdate = functionsV1.database
+    .ref("/riderLocations/{orderId}")
+    .onWrite(
+        async (
+            change: functionsV1.Change<any>,
+            context: functionsV1.EventContext
+        ) => {
+          const orderId = context.params.orderId;
+          const location = change.after.val();
 
-    if (!location) return null;
+          if (!location) return null;
 
-    console.log(`📍 Rider for Order ${orderId} moved to:`, location);
+          console.log(`📍 Rider for Order ${orderId} moved to:`, location);
 
-    await admin.firestore().collection("riderTrackingLogs").add({
-      orderId,
-      ...location,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+          await admin.firestore().collection("riderTrackingLogs").add({
+            orderId,
+            ...location,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
 
-    return null;
-  });// services/riderLocation.ts
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
-
-// Ensure Firebase Admin SDK initialized once
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-
-export const onRiderLocationUpdate = functions.database
-  .ref("/riderLocations/{orderId}")
-  .onWrite(async (change: Change<any>, context) => {
-    const orderId = context.params.orderId;
-    const location = change.after.val();
-
-    if (!location) return null;
-
-    console.log(`📍 Rider for Order ${orderId} moved to:`, location);
-
-    await admin.firestore().collection("riderTrackingLogs").add({
-      orderId,
-      ...location,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    return null;
-  });
+          return null;
+        }
+    );
