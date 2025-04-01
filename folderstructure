@@ -1,0 +1,19 @@
+/your-project-root
+│── /functions                # Firebase Functions source folder
+│   │── /src                  # Your TypeScript source code
+│   │   │── /routes           # Route handlers (modular structure)
+│   │   │   ├── admin.ts      # Admin-specific functions
+│   │   │   ├── users.ts      # User management functions
+│   │   │── /middleware       # Middleware functions
+│   │   │   ├── auth.ts       # Admin authentication middleware
+│   │   │── /utils            # Utility functions (helper functions)
+│   │   │   ├── firestore.ts  # Firestore helper methods
+│   │   │   ├── auth.ts       # Firebase Auth helper methods
+│   │   │── index.ts          # Main entry file for Firebase functions
+│   │── package.json          # Dependencies for Firebase functions
+│   │── tsconfig.json         # TypeScript config file
+│   │── .eslintrc.js          # Linter config for clean code
+│── /public                   # Public folder (if using Firebase Hosting)
+│── /firestore.rules          # Firestore security rules
+│── /firebase.json            # Firebase project config file
+│── /.gitignore               # Ignore node_modules, Firebase secrets, etc.
