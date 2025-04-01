@@ -71,3 +71,4 @@ functions/.env
 
 # dataconnect generated files
 .dataconnect
+/apps/lalabadashboard/
