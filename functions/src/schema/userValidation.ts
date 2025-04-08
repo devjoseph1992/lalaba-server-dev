@@ -43,9 +43,7 @@ const employeeSchema = baseSchema.extend({
   jobTitle: z.string().min(1, "Job title is required"),
   department: z.string().min(1, "Department is required"),
   employeeId: z.string().min(1, "Employee ID is required"),
-  employmentStatus: z
-    .enum(["full-time", "part-time", "contract"])
-    .default("full-time"),
+  employmentStatus: z.enum(["full-time", "part-time", "contract"]).default("full-time"),
   barangayClearance: z.string().min(1, "Barangay clearance is required"), // ✅ Only for employees
 });
 

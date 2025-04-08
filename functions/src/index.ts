@@ -11,6 +11,8 @@ import walletRoutes from "./routes/wallet";
 
 import riderRoutes from "./routes/rider";
 
+import orderRoutes from "./routes/orders";
+
 import dotenv from "dotenv";
 
 // Load environment variables
@@ -27,7 +29,7 @@ app.use("/employees", employeeRoutes);
 app.use("/xendit", webhookRoutes);
 app.use("/wallet", walletRoutes);
 app.use("/rider", riderRoutes);
-
+app.use("/orders", orderRoutes);
 
 // ✅ Health Check Route (Fix for Cloud Run Healthcheck Failures)
 app.get("/", (req, res) => {

@@ -52,10 +52,7 @@ router.get("/role/:role", verifyFirebaseToken, async (req, res) => {
 
       if (search) {
         users.users = users.users.filter((user: any) =>
-          Object.values(user)
-            .join(" ")
-            .toLowerCase()
-            .includes(search.toLowerCase())
+          Object.values(user).join(" ").toLowerCase().includes(search.toLowerCase())
         );
       }
 
@@ -123,16 +120,8 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
     // ✅ Validate request body with Zod
     const validatedData = userSchema.parse(req.body);
 
-    const {
-      role,
-      email,
-      password,
-      firstName,
-      lastName,
-      phoneNumber,
-      address,
-      tinNumber,
-    } = validatedData;
+    const { role, email, password, firstName, lastName, phoneNumber, address, tinNumber } =
+      validatedData;
 
     const createdBy = req.user?.uid;
 
@@ -150,9 +139,7 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
       if (!existingEmployee.empty) {
         return res.status(400).json({
           error: "❌ Validation Failed",
-          details: [
-            { path: ["employeeId"], message: "Employee ID already exists." },
-          ],
+          details: [{ path: ["employeeId"], message: "Employee ID already exists." }],
         });
       }
     }
@@ -205,12 +192,11 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
         philhealthNumber, // ✅ Only for riders
       };
     } else if (role === "merchant") {
-      const { businessName, businessAddress, businessPermit } =
-        validatedData as {
-          businessName: string;
-          businessAddress: string;
-          businessPermit: string;
-        };
+      const { businessName, businessAddress, businessPermit } = validatedData as {
+        businessName: string;
+        businessAddress: string;
+        businessPermit: string;
+      };
 
       userData = {
         ...userData,
@@ -250,11 +236,7 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
     }
 
     // ✅ Save user data to Firestore
-    await admin
-      .firestore()
-      .collection("users")
-      .doc(userRecord.uid)
-      .set(userData);
+    await admin.firestore().collection("users").doc(userRecord.uid).set(userData);
 
     // ✅ Create a Wallet for Riders & Merchants
     if (role === "rider" || role === "merchant") {
@@ -330,24 +312,19 @@ router.put("/update/:uid", verifyFirebaseToken, isAdmin, async (req, res) => {
 /**
  * ✅ Delete a User (Admins Can Delete Users)
  */
-router.delete(
-  "/delete/:uid",
-  verifyFirebaseToken,
-  isAdmin,
-  async (req, res) => {
-    try {
-      if (req.user && req.user.uid === req.params.uid) {
-        return res.status(403).json({ error: "You cannot delete yourself." });
-      }
-
-      await deleteUser(req.params.uid);
-      await admin.auth().deleteUser(req.params.uid);
-      return res.status(200).json({ message: "User deleted successfully." });
-    } catch (error) {
-      console.error("❌ Error deleting user:", error);
-      return res.status(500).json({ error: (error as any).message });
+router.delete("/delete/:uid", verifyFirebaseToken, isAdmin, async (req, res) => {
+  try {
+    if (req.user && req.user.uid === req.params.uid) {
+      return res.status(403).json({ error: "You cannot delete yourself." });
     }
+
+    await deleteUser(req.params.uid);
+    await admin.auth().deleteUser(req.params.uid);
+    return res.status(200).json({ message: "User deleted successfully." });
+  } catch (error) {
+    console.error("❌ Error deleting user:", error);
+    return res.status(500).json({ error: (error as any).message });
   }
-);
+});
 
 export default router;

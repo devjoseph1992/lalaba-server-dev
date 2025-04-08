@@ -72,3 +72,6 @@ functions/.env
 # dataconnect generated files
 .dataconnect
 /apps/lalabadashboard/
+/apps/dev-lalaba-merchant/
+/apps/.DS_Store
+/apps/.idea/

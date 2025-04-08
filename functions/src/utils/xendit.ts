@@ -93,10 +93,7 @@ export const processXenditWebhook = async (webhookData: any) => {
     if (!userId) throw new Error("❌ Invalid reference ID format.");
 
     // ✅ Check if Webhook is Already Processed
-    const webhookRef = admin
-      .firestore()
-      .collection("xendit_webhooks")
-      .doc(chargeId);
+    const webhookRef = admin.firestore().collection("xendit_webhooks").doc(chargeId);
     const webhookSnapshot = await webhookRef.get();
 
     if (webhookSnapshot.exists) {
@@ -147,9 +144,7 @@ export const processXenditWebhook = async (webhookData: any) => {
       });
     });
 
-    console.log(
-      `✅ Wallet updated for user ${userId}: +₱${finalAmount} (after 20% fee)`
-    );
+    console.log(`✅ Wallet updated for user ${userId}: +₱${finalAmount} (after 20% fee)`);
   } catch (error) {
     console.error("❌ Error processing Xendit webhook:", error);
     throw error;
@@ -193,10 +188,7 @@ export const processRefund = async (orderId: string) => {
     }
 
     // ✅ Fetch Merchant & Rider Wallets
-    const merchantWalletRef = admin
-      .firestore()
-      .collection("wallets")
-      .doc(merchantId);
+    const merchantWalletRef = admin.firestore().collection("wallets").doc(merchantId);
     const riderWalletRef = admin.firestore().collection("wallets").doc(riderId);
 
     const merchantWalletSnapshot = await merchantWalletRef.get();
@@ -209,17 +201,11 @@ export const processRefund = async (orderId: string) => {
     const merchantWalletData = merchantWalletSnapshot.data();
     const riderWalletData = riderWalletSnapshot.data();
 
-    const currentMerchantBalance = parseFloat(
-      decrypt(merchantWalletData!.balance)
-    );
+    const currentMerchantBalance = parseFloat(decrypt(merchantWalletData!.balance));
     const currentRiderBalance = parseFloat(decrypt(riderWalletData!.balance));
 
-    const merchantHoldAmount = parseFloat(
-      decrypt(merchantWalletData!.holdAmount || "0")
-    );
-    const riderHoldAmount = parseFloat(
-      decrypt(riderWalletData!.holdAmount || "0")
-    );
+    const merchantHoldAmount = parseFloat(decrypt(merchantWalletData!.holdAmount || "0"));
+    const riderHoldAmount = parseFloat(decrypt(riderWalletData!.holdAmount || "0"));
 
     // ✅ Refund for Online Payments (GCash, Bank Transfer, Credit Card)
     if (["GCASH", "BANK_TRANSFER", "CREDIT_CARD"].includes(paymentMethod)) {
@@ -252,9 +238,7 @@ export const processRefund = async (orderId: string) => {
         });
 
         transaction.update(merchantWalletRef, {
-          balance: encrypt(
-            (currentMerchantBalance + merchantHoldAmount).toString()
-          ), // Refund hold amount
+          balance: encrypt((currentMerchantBalance + merchantHoldAmount).toString()), // Refund hold amount
           holdAmount: encrypt("0"),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
@@ -275,8 +259,7 @@ export const processRefund = async (orderId: string) => {
     // ✅ Refund for Cash Payments (Only Platform Fee to Merchant/Rider)
     if (paymentMethod === "cash") {
       // ✅ Refund Platform Fee to Merchant & Rider
-      const refundedMerchantBalance =
-        currentMerchantBalance + merchantHoldAmount;
+      const refundedMerchantBalance = currentMerchantBalance + merchantHoldAmount;
       const refundedRiderBalance = currentRiderBalance + riderHoldAmount;
 
       await merchantWalletRef.update({

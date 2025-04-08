@@ -10,3 +10,8 @@ node_modules/
 *.local
 folderstructure
 .env
+.prettierrc
+/apps/lalabadashboard/
+/apps/dev-lalaba-merchant/
+/apps/.DS_Store
+/apps/.idea/

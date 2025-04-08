@@ -15,9 +15,7 @@ router.post("/rider/location", verifyFirebaseToken, async (req, res) => {
     const { latitude, longitude } = req.body;
 
     if (!latitude || !longitude) {
-      return res
-        .status(400)
-        .json({ error: "Latitude and Longitude are required." });
+      return res.status(400).json({ error: "Latitude and Longitude are required." });
     }
 
     // ✅ Save rider's location in Realtime Database
@@ -40,10 +38,7 @@ router.post("/rider/location", verifyFirebaseToken, async (req, res) => {
  */
 router.get("/riders/locations", verifyFirebaseToken, async (req, res) => {
   try {
-    const snapshot = await admin
-      .database()
-      .ref("/rider_locations")
-      .once("value");
+    const snapshot = await admin.database().ref("/rider_locations").once("value");
     const riders = snapshot.val();
 
     if (!riders) {

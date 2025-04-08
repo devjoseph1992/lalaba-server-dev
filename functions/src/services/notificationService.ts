@@ -18,11 +18,7 @@ const transporter = nodemailer.createTransport({
 /**
  * ✅ Send Push Notification via Firebase Cloud Messaging (FCM)
  */
-export const sendPushNotification = async (
-  fcmToken: string,
-  title: string,
-  body: string
-) => {
+export const sendPushNotification = async (fcmToken: string, title: string, body: string) => {
   try {
     const message: admin.messaging.Message = {
       token: fcmToken,
@@ -56,11 +52,7 @@ export const sendPushNotification = async (
 /**
  * ✅ Send Email Notification
  */
-export const sendEmailNotification = async (
-  to: string,
-  subject: string,
-  htmlContent: string
-) => {
+export const sendEmailNotification = async (to: string, subject: string, htmlContent: string) => {
   try {
     const mailOptions = {
       from: `"Your App" <${process.env.EMAIL_USER}>`,

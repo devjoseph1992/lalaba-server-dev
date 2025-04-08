@@ -7,25 +7,23 @@ if (!admin.apps.length) {
 }
 
 export const onRiderLocationUpdate = functionsV1.database
-    .ref("/riderLocations/{orderId}")
-    .onWrite(
-        async (
-            change: functionsV1.Change<any>,
-            context: functionsV1.EventContext
-        ) => {
-          const orderId = context.params.orderId;
-          const location = change.after.val();
+  .ref("/riderLocations/{orderId}")
+  .onWrite(async (change: functionsV1.Change<any>, context: functionsV1.EventContext) => {
+    const orderId = context.params.orderId;
+    const location = change.after.val();
 
-          if (!location) return null;
+    if (!location) return null;
 
-          console.log(`📍 Rider for Order ${orderId} moved to:`, location);
+    console.log(`📍 Rider for Order ${orderId} moved to:`, location);
 
-          await admin.firestore().collection("riderTrackingLogs").add({
-            orderId,
-            ...location,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
+    await admin
+      .firestore()
+      .collection("riderTrackingLogs")
+      .add({
+        orderId,
+        ...location,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
 
-          return null;
-        }
-    );
+    return null;
+  });

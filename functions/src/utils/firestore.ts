@@ -7,8 +7,7 @@ import * as admin from "firebase-admin";
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.applicationDefault(),
-    databaseURL:
-      functions.config().app?.database_url || "http://localhost:9000",
+    databaseURL: functions.config().app?.database_url || "http://localhost:9000",
   });
   console.log("✅ Firebase Admin initialized.");
 }
@@ -22,10 +21,7 @@ export { db, auth }; // ✅ Export Firestore & Auth References
 /**
  * ✅ Assigns Role to a User in Firebase Auth
  */
-export async function setUserRole(
-  uid: string,
-  role: "admin" | "employee" | "rider" | "merchant"
-) {
+export async function setUserRole(uid: string, role: "admin" | "employee" | "rider" | "merchant") {
   try {
     await auth.setCustomUserClaims(uid, { role });
     console.log(`✅ Role "${role}" assigned to UID: ${uid}`);
@@ -76,10 +72,7 @@ export async function getUsersByRole(
   lastVisibleId?: string // Used for pagination with `startAfter`
 ) {
   try {
-    const usersRef = db
-      .collection("users")
-      .where("role", "==", role)
-      .orderBy("createdAt", "desc");
+    const usersRef = db.collection("users").where("role", "==", role).orderBy("createdAt", "desc");
 
     // 🔹 Get total count (Separate Query)
     const totalUsersSnapshot = await usersRef.get();
@@ -90,10 +83,7 @@ export async function getUsersByRole(
 
     // If lastVisibleId is provided, paginate using `startAfter`
     if (lastVisibleId) {
-      const lastVisibleDoc = await db
-        .collection("users")
-        .doc(lastVisibleId)
-        .get();
+      const lastVisibleDoc = await db.collection("users").doc(lastVisibleId).get();
       if (lastVisibleDoc.exists) {
         query = query.startAfter(lastVisibleDoc);
       }
@@ -106,9 +96,7 @@ export async function getUsersByRole(
       ...doc.data(),
     }));
 
-    console.log(
-      `✅ Retrieved ${users.length} users with role: ${role} (Page ${page})`
-    );
+    console.log(`✅ Retrieved ${users.length} users with role: ${role} (Page ${page})`);
 
     return {
       users,

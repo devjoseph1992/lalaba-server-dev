@@ -18,13 +18,8 @@ const isAdminOrMerchant = async (req: any, res: any, next: any) => {
     const userSnapshot = await userRef.get();
     const userRole = userSnapshot.data()?.role;
 
-    if (
-      !userSnapshot.exists ||
-      (userRole !== "merchant" && userRole !== "admin")
-    ) {
-      return res
-        .status(403)
-        .json({ error: "Access denied. Only Admins & Merchants allowed." });
+    if (!userSnapshot.exists || (userRole !== "merchant" && userRole !== "admin")) {
+      return res.status(403).json({ error: "Access denied. Only Admins & Merchants allowed." });
     }
 
     req.user.role = userRole; // Store role in request object for further processing
@@ -38,57 +33,47 @@ const isAdminOrMerchant = async (req: any, res: any, next: any) => {
 /**
  * ✅ Add or Update Merchant Store (Admins & Merchants Can Add)
  */
-router.post(
-  "/store/add",
-  verifyFirebaseToken,
-  isAdminOrMerchant,
-  async (req, res) => {
-    try {
-      const { storeName, location, services, extras, merchantId } = req.body;
-      let ownerId = req.user?.uid;
+router.post("/store/add", verifyFirebaseToken, isAdminOrMerchant, async (req, res) => {
+  try {
+    const { storeName, location, services, extras, merchantId } = req.body;
+    let ownerId = req.user?.uid;
 
-      if (req.user && req.user.role === "admin") {
-        if (!merchantId) {
-          return res
-            .status(400)
-            .json({ error: "Merchant ID is required for admins." });
-        }
-        ownerId = merchantId; // Admin is adding store for a merchant
+    if (req.user && req.user.role === "admin") {
+      if (!merchantId) {
+        return res.status(400).json({ error: "Merchant ID is required for admins." });
       }
-
-      if (!ownerId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      if (!storeName || !location || !services) {
-        return res.status(400).json({ error: "Missing required fields." });
-      }
-
-      const storeRef = admin
-        .firestore()
-        .collection("merchant_stores")
-        .doc(ownerId);
-
-      await storeRef.set(
-        {
-          merchantId: ownerId,
-          storeName,
-          location,
-          services, // Example: { "Premium Wash": { price: 650, description: "High-quality wash" } }
-          extras, // Example: { soap: { Dove: 10, Safeguard: 12 } }
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      console.log(`✅ Merchant store added/updated: ${ownerId}`);
-      return res.status(201).json({ message: "Store added successfully." });
-    } catch (error) {
-      console.error("❌ Error adding store:", error);
-      return res.status(500).json({ error: "Internal Server Error" });
+      ownerId = merchantId; // Admin is adding store for a merchant
     }
+
+    if (!ownerId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!storeName || !location || !services) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    const storeRef = admin.firestore().collection("merchant_stores").doc(ownerId);
+
+    await storeRef.set(
+      {
+        merchantId: ownerId,
+        storeName,
+        location,
+        services, // Example: { "Premium Wash": { price: 650, description: "High-quality wash" } }
+        extras, // Example: { soap: { Dove: 10, Safeguard: 12 } }
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    console.log(`✅ Merchant store added/updated: ${ownerId}`);
+    return res.status(201).json({ message: "Store added successfully." });
+  } catch (error) {
+    console.error("❌ Error adding store:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
-);
+});
 
 /**
  * ✅ Get Merchant Store Details
@@ -117,10 +102,7 @@ router.get("/store", verifyFirebaseToken, async (req, res) => {
       });
     }
 
-    const storeRef = admin
-      .firestore()
-      .collection("merchant_stores")
-      .doc(merchantId);
+    const storeRef = admin.firestore().collection("merchant_stores").doc(merchantId);
     const storeSnapshot = await storeRef.get();
 
     if (!storeSnapshot.exists) {

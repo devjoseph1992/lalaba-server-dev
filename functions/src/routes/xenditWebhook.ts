@@ -2,10 +2,7 @@
 
 import { Router } from "express";
 import * as admin from "firebase-admin";
-import {
-  sendPushNotification,
-  sendEmailNotification,
-} from "../services/notificationService";
+import { sendPushNotification, sendEmailNotification } from "../services/notificationService";
 import * as dotenv from "dotenv";
 import { encrypt, decrypt } from "../utils/encryption"; // Import encryption utilities
 
@@ -82,9 +79,7 @@ router.post("/webhook", async (req, res) => {
     }
 
     const walletData = walletSnapshot.data();
-    const currentBalance = walletData?.balance ?
-      parseFloat(decrypt(walletData.balance)) :
-      0;
+    const currentBalance = walletData?.balance ? parseFloat(decrypt(walletData.balance)) : 0;
 
     // ✅ Deduct 20% Platform Fee
     const platformFee = amount * 0.2;
@@ -92,10 +87,7 @@ router.post("/webhook", async (req, res) => {
     const newBalance = currentBalance + netAmount;
 
     // ✅ Store Webhook Data in Firestore (for logging/debugging)
-    const webhookRef = admin
-      .firestore()
-      .collection("xendit_webhooks")
-      .doc(chargeId);
+    const webhookRef = admin.firestore().collection("xendit_webhooks").doc(chargeId);
     await webhookRef.set({
       chargeId,
       userId,
@@ -129,9 +121,7 @@ router.post("/webhook", async (req, res) => {
       });
     });
 
-    console.log(
-      `✅ Wallet updated for user ${userId}: +₱${netAmount} (after 20% fee)`
-    );
+    console.log(`✅ Wallet updated for user ${userId}: +₱${netAmount} (after 20% fee)`);
 
     // ✅ Send Real-Time Notifications
     if (userData.fcmToken) {

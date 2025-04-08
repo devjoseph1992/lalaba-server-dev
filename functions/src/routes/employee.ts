@@ -35,132 +35,103 @@ router.get("/", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
 /**
  * ✅ Get All Riders with Pagination (Admin & Employees Can View)
  */
-router.get(
-  "/riders",
-  verifyFirebaseToken,
-  isAdminOrEmployee,
-  async (req, res) => {
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const startIndex = (page - 1) * limit;
+router.get("/riders", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const startIndex = (page - 1) * limit;
 
-      const snapshot = await admin
-        .firestore()
-        .collection("users")
-        .where("role", "==", "rider")
-        .get();
-      const totalRiders = snapshot.docs.length;
-      const riders = snapshot.docs
-        .slice(startIndex, startIndex + limit)
-        .map((doc) => ({ id: doc.id, ...doc.data() }));
+    const snapshot = await admin.firestore().collection("users").where("role", "==", "rider").get();
+    const totalRiders = snapshot.docs.length;
+    const riders = snapshot.docs
+      .slice(startIndex, startIndex + limit)
+      .map((doc) => ({ id: doc.id, ...doc.data() }));
 
-      return res.status(200).json({
-        riders,
-        pagination: {
-          total: totalRiders,
-          page,
-          limit,
-          totalPages: Math.ceil(totalRiders / limit),
-          hasNextPage: startIndex + limit < totalRiders,
-          hasPrevPage: startIndex > 0,
-        },
-      });
-    } catch (error) {
-      console.error("❌ Error fetching riders:", error);
-      return res.status(500).json({ error: (error as Error).message });
-    }
+    return res.status(200).json({
+      riders,
+      pagination: {
+        total: totalRiders,
+        page,
+        limit,
+        totalPages: Math.ceil(totalRiders / limit),
+        hasNextPage: startIndex + limit < totalRiders,
+        hasPrevPage: startIndex > 0,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching riders:", error);
+    return res.status(500).json({ error: (error as Error).message });
   }
-);
+});
 
 /**
  * ✅ Get All Merchants with Pagination (Admin & Employees Can View)
  */
-router.get(
-  "/merchants",
-  verifyFirebaseToken,
-  isAdminOrEmployee,
-  async (req, res) => {
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const startIndex = (page - 1) * limit;
+router.get("/merchants", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const startIndex = (page - 1) * limit;
 
-      const snapshot = await admin
-        .firestore()
-        .collection("users")
-        .where("role", "==", "merchant")
-        .get();
-      const totalMerchants = snapshot.docs.length;
-      const merchants = snapshot.docs
-        .slice(startIndex, startIndex + limit)
-        .map((doc) => ({ id: doc.id, ...doc.data() }));
+    const snapshot = await admin
+      .firestore()
+      .collection("users")
+      .where("role", "==", "merchant")
+      .get();
+    const totalMerchants = snapshot.docs.length;
+    const merchants = snapshot.docs
+      .slice(startIndex, startIndex + limit)
+      .map((doc) => ({ id: doc.id, ...doc.data() }));
 
-      return res.status(200).json({
-        merchants,
-        pagination: {
-          total: totalMerchants,
-          page,
-          limit,
-          totalPages: Math.ceil(totalMerchants / limit),
-          hasNextPage: startIndex + limit < totalMerchants,
-          hasPrevPage: startIndex > 0,
-        },
-      });
-    } catch (error) {
-      console.error("❌ Error fetching merchants:", error);
-      return res.status(500).json({ error: (error as Error).message });
-    }
+    return res.status(200).json({
+      merchants,
+      pagination: {
+        total: totalMerchants,
+        page,
+        limit,
+        totalPages: Math.ceil(totalMerchants / limit),
+        hasNextPage: startIndex + limit < totalMerchants,
+        hasPrevPage: startIndex > 0,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching merchants:", error);
+    return res.status(500).json({ error: (error as Error).message });
   }
-);
+});
 
 /**
  * ✅ Update Rider Details (Admin & Employees Can Update)
  */
-router.put(
-  "/riders/:id",
-  verifyFirebaseToken,
-  isAdminOrEmployee,
-  async (req, res) => {
-    try {
-      await updateUser(req.params.id, req.body);
-      return res.status(200).json({ message: "Rider updated successfully." });
-    } catch (error) {
-      console.error("❌ Error updating rider:", error);
-      return res.status(500).json({ error: (error as Error).message });
-    }
+router.put("/riders/:id", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
+  try {
+    await updateUser(req.params.id, req.body);
+    return res.status(200).json({ message: "Rider updated successfully." });
+  } catch (error) {
+    console.error("❌ Error updating rider:", error);
+    return res.status(500).json({ error: (error as Error).message });
   }
-);
+});
 
 /**
  * ✅ Delete Rider (Admin & Employees Can Delete)
  */
-router.delete(
-  "/riders/:id",
-  verifyFirebaseToken,
-  isAdminOrEmployee,
-  async (req, res) => {
-    try {
-      await deleteUser(req.params.id);
-      return res.status(200).json({ message: "Rider deleted successfully." });
-    } catch (error) {
-      console.error("❌ Error deleting rider:", error);
-      return res.status(500).json({ error: (error as Error).message });
-    }
+router.delete("/riders/:id", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
+  try {
+    await deleteUser(req.params.id);
+    return res.status(200).json({ message: "Rider deleted successfully." });
+  } catch (error) {
+    console.error("❌ Error deleting rider:", error);
+    return res.status(500).json({ error: (error as Error).message });
   }
-);
+});
 
 /**
  * ✅ Add a New User (Rider or Merchant)
  */
-const addUser = async (
-  req: Request,
-  res: Response,
-  role: "rider" | "merchant"
-) => {
+const addUser = async (req: Request, res: Response, role: "rider" | "merchant") => {
   try {
-    const { email, password, firstName, lastName, phoneNumber, address } =
-      req.body;
+    const { email, password, firstName, lastName, phoneNumber, address } = req.body;
     const createdBy = req.user?.uid;
 
     const userRecord = await admin.auth().createUser({
@@ -191,29 +162,17 @@ const addUser = async (
     }
 
     // ✅ Save user to Firestore
-    await admin
-      .firestore()
-      .collection("users")
-      .doc(userRecord.uid)
-      .set(userData);
+    await admin.firestore().collection("users").doc(userRecord.uid).set(userData);
 
     // ✅ Create Wallet for Riders & Merchants
     await createWallet(userRecord.uid);
 
     // ✅ Create Xendit Customer for Riders & Merchants
-    await createXenditCustomer(
-      userRecord.uid,
-      email,
-      firstName,
-      lastName,
-      phoneNumber
-    );
+    await createXenditCustomer(userRecord.uid, email, firstName, lastName, phoneNumber);
 
     return res.status(201).json({
       uid: userRecord.uid,
-      message: `${
-        role.charAt(0).toUpperCase() + role.slice(1)
-      } added successfully.`,
+      message: `${role.charAt(0).toUpperCase() + role.slice(1)} added successfully.`,
     });
   } catch (error) {
     console.error(`❌ Error adding ${role}:`, error);
@@ -227,51 +186,34 @@ router.post("/riders/add", verifyFirebaseToken, isAdminOrEmployee, (req, res) =>
 );
 
 // ✅ Add a New Merchant
-router.post(
-  "/merchants/add",
-  verifyFirebaseToken,
-  isAdminOrEmployee,
-  (req, res) => addUser(req, res, "merchant")
+router.post("/merchants/add", verifyFirebaseToken, isAdminOrEmployee, (req, res) =>
+  addUser(req, res, "merchant")
 );
 
 /**
  * ✅ Update Merchant Details (Admin & Employees Can Update)
  */
-router.put(
-  "/merchants/:id",
-  verifyFirebaseToken,
-  isAdminOrEmployee,
-  async (req, res) => {
-    try {
-      await updateUser(req.params.id, req.body);
-      return res
-        .status(200)
-        .json({ message: "Merchant updated successfully." });
-    } catch (error) {
-      console.error("❌ Error updating merchant:", error);
-      return res.status(500).json({ error: (error as Error).message });
-    }
+router.put("/merchants/:id", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
+  try {
+    await updateUser(req.params.id, req.body);
+    return res.status(200).json({ message: "Merchant updated successfully." });
+  } catch (error) {
+    console.error("❌ Error updating merchant:", error);
+    return res.status(500).json({ error: (error as Error).message });
   }
-);
+});
 
 /**
  * ✅ Delete Merchant (Admin & Employees Can Delete)
  */
-router.delete(
-  "/merchants/:id",
-  verifyFirebaseToken,
-  isAdminOrEmployee,
-  async (req, res) => {
-    try {
-      await deleteUser(req.params.id);
-      return res
-        .status(200)
-        .json({ message: "Merchant deleted successfully." });
-    } catch (error) {
-      console.error("❌ Error deleting merchant:", error);
-      return res.status(500).json({ error: (error as Error).message });
-    }
+router.delete("/merchants/:id", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
+  try {
+    await deleteUser(req.params.id);
+    return res.status(200).json({ message: "Merchant deleted successfully." });
+  } catch (error) {
+    console.error("❌ Error deleting merchant:", error);
+    return res.status(500).json({ error: (error as Error).message });
   }
-);
+});
 
 export default router;

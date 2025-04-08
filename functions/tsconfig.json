@@ -1,16 +1,19 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
+    "target": "ES2020",                        // ✅ Modern target
+    "module": "commonjs",                      // ✅ Required for Firebase
+    "lib": ["ES2020"],                         // ✅ Modern libs
+    "moduleResolution": "node",               // ✅ Not NodeNext
     "esModuleInterop": true,
-    "moduleResolution": "nodenext",
+    "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
-    "outDir": "lib",
-    "sourceMap": true,
     "strict": true,
-    "target": "es2017",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "outDir": "lib",                          // ✅ Compiled output
+    "rootDir": "src",                         // ✅ Entry point dir
+    "sourceMap": true
   },
   "compileOnSave": true,
-  "include": ["src", ".eslintrc.js"]
+  "include": ["src"]
 }

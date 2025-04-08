@@ -8,11 +8,11 @@ dotenv.config();
 
 function getXenditSecretKey(): string {
   return (
-      process.env.XENDIT_SECRET_KEY || // ✅ Local dev via .env
-      functions.config().xendit?.secret_key || // ✅ Firebase functions config
-      (() => {
-        throw new Error("❌ XENDIT_SECRET_KEY is missing in environment variables.");
-      })()
+    process.env.XENDIT_SECRET_KEY || // ✅ Local dev via .env
+    functions.config().xendit?.secret_key || // ✅ Firebase functions config
+    (() => {
+      throw new Error("❌ XENDIT_SECRET_KEY is missing in environment variables.");
+    })()
   );
 }
 
@@ -20,11 +20,11 @@ function getXenditSecretKey(): string {
  * ✅ Create a Customer in Xendit
  */
 export const createXenditCustomer = async (
-    userId: string,
-    email: string,
-    firstName: string,
-    lastName: string,
-    phoneNumber: string
+  userId: string,
+  email: string,
+  firstName: string,
+  lastName: string,
+  phoneNumber: string
 ): Promise<any> => {
   try {
     const referenceId = `customer-${userId}`;
@@ -42,13 +42,9 @@ export const createXenditCustomer = async (
 
     console.log("📌 Sending request to Xendit:", requestBody);
 
-    const response = await axios.post(
-        "https://api.xendit.co/customers",
-        requestBody,
-        {
-          auth: { username: getXenditSecretKey(), password: "" },
-        }
-    );
+    const response = await axios.post("https://api.xendit.co/customers", requestBody, {
+      auth: { username: getXenditSecretKey(), password: "" },
+    });
 
     console.log("✅ Xendit Customer Created:", response.data);
 
@@ -60,10 +56,7 @@ export const createXenditCustomer = async (
 
     return response.data;
   } catch (error: any) {
-    console.error(
-        "❌ Error creating Xendit customer:",
-        error.response?.data || error.message
-    );
+    console.error("❌ Error creating Xendit customer:", error.response?.data || error.message);
     throw error;
   }
 };

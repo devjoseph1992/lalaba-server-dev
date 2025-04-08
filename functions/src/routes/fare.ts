@@ -10,12 +10,7 @@ const router = Router();
 /**
  * ✅ Calculate Distance (Haversine Formula)
  */
-const calculateDistance = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-) => {
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const toRadians = (deg: number) => (deg * Math.PI) / 180;
   const R = 6371; // Earth radius in km
 
@@ -23,10 +18,7 @@ const calculateDistance = (
   const dLon = toRadians(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) *
-      Math.cos(toRadians(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
@@ -72,9 +64,7 @@ router.post("/pickup", verifyFirebaseToken, async (req, res) => {
     const platformFee = totalFare * 0.2; // 20% Platform Fee
 
     console.log(
-      `✅ Distance: ${distance.toFixed(
-        2
-      )} km | Fare: ₱${totalFare} | Platform Fee: ₱${platformFee}`
+      `✅ Distance: ${distance.toFixed(2)} km | Fare: ₱${totalFare} | Platform Fee: ₱${platformFee}`
     );
 
     // ✅ Fetch Rider's Wallet
@@ -89,9 +79,7 @@ router.post("/pickup", verifyFirebaseToken, async (req, res) => {
     const currentBalance = parseFloat(decrypt(walletData!.balance));
 
     if (currentBalance < platformFee) {
-      return res
-        .status(400)
-        .json({ error: "Insufficient wallet balance to cover platform fee." });
+      return res.status(400).json({ error: "Insufficient wallet balance to cover platform fee." });
     }
 
     const newBalance = currentBalance - platformFee;
@@ -112,9 +100,7 @@ router.post("/pickup", verifyFirebaseToken, async (req, res) => {
       status: "picked_up",
       riderId,
       platformFee,
-      holdUntil: admin.firestore.Timestamp.fromDate(
-        new Date(Date.now() + 30 * 60 * 1000)
-      ),
+      holdUntil: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 60 * 1000)),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 

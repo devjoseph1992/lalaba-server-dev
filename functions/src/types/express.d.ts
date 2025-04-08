@@ -1,8 +1,8 @@
 import * as admin from "firebase-admin";
-import { Request } from "express";
+import "express"; // Ensure this is imported to augment types
 
 declare module "express-serve-static-core" {
   interface Request {
-    user?: admin.auth.DecodedIdToken; // Add user property to Request
+    user?: admin.auth.DecodedIdToken & { role?: string };
   }
 }
