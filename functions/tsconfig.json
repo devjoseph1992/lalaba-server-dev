@@ -1,19 +1,29 @@
 {
   "compilerOptions": {
-    "target": "ES2020",                        // ✅ Modern target
-    "module": "commonjs",                      // ✅ Required for Firebase
-    "lib": ["ES2020"],                         // ✅ Modern libs
-    "moduleResolution": "node",               // ✅ Not NodeNext
+    "target": "ES2020",
+    // ✅ Modern target
+    "module": "commonjs",
+    // ✅ Required for Firebase
+    "lib": [
+      "ES2020"
+    ],
+    // ✅ Modern libs
+    "moduleResolution": "node",
+    // ✅ Not NodeNext
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "strict": true,
     "skipLibCheck": true,
-    "outDir": "lib",                          // ✅ Compiled output
-    "rootDir": "src",                         // ✅ Entry point dir
+    "outDir": "lib",
+    // ✅ Compiled output
+    "rootDir": "src",
+    // ✅ Entry point dir
     "sourceMap": true
   },
   "compileOnSave": true,
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

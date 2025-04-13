@@ -3,7 +3,7 @@
 import * as admin from "firebase-admin";
 import * as dotenv from "dotenv";
 import axios from "axios";
-import { encrypt, decrypt } from "../utils/encryption";
+import { decrypt, encrypt } from "./encryption";
 
 dotenv.config();
 

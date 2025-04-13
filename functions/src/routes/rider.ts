@@ -1,5 +1,5 @@
 // routes/rider.ts
-import { Router, Request, Response } from "express";
+import { Request, Response, Router } from "express";
 import admin from "firebase-admin";
 
 const db = admin.database();

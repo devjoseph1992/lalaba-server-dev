@@ -2,9 +2,9 @@
 
 import { Router } from "express";
 import * as admin from "firebase-admin";
-import { sendPushNotification, sendEmailNotification } from "../services/notificationService";
+import { sendEmailNotification, sendPushNotification } from "../services/notificationService";
 import * as dotenv from "dotenv";
-import { encrypt, decrypt } from "../utils/encryption"; // Import encryption utilities
+import { decrypt, encrypt } from "../utils/encryption"; // Import encryption utilities
 
 dotenv.config(); // ✅ Load .env variables
 

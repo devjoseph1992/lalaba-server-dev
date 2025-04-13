@@ -3,7 +3,7 @@
 import { Router } from "express";
 import * as admin from "firebase-admin";
 import { verifyFirebaseToken } from "../middleware/auth";
-import { encrypt, decrypt } from "../utils/encryption";
+import { decrypt, encrypt } from "../utils/encryption";
 
 const router = Router();
 

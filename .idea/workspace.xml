@@ -5,56 +5,37 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="78c7a981-acfb-45d6-8eb2-f53bd121f3e6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/apps/dev-lalaba-merchant/.idea/codeStyles/Project.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/apps/dev-lalaba-merchant/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/apps/dev-lalaba-merchant/.idea/prettier.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/apps/dev-lalaba-merchant/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/.prettierrc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/middleware/hasBalance.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/acceptMerchant.route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/acceptRider.route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/cancelOrder.route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/completeOrder.route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/getCustomerOrders.route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/index.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/placeOrder.route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/updateWeight.route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/types/global.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/utils/calculateDistance.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/lalabaser-final.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/prettier.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/prettier.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/dev-lalaba-merchant/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/apps/dev-lalaba-merchant/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/routes/business.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/routes/businesses/categories.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/routes/businesses/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/routes/businesses/products.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/routes/businesses/services.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/routes/businesses/setup.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/book-rider.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/schema/businessValidation.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/schema/categoryValidation.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/schema/productValidation.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/schema/serviceValidation.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/utils/createDefaultServices.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/utils/ensureDefaultCategories.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/prettier.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/firestore.indexes.json" beforeDir="false" afterPath="$PROJECT_DIR$/firestore.indexes.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/firestore.rules" beforeDir="false" afterPath="$PROJECT_DIR$/firestore.rules" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/.eslintrc.js" beforeDir="false" afterPath="$PROJECT_DIR$/functions/.eslintrc.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/functions/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/firestore.indexes.json" beforeDir="false" afterPath="$PROJECT_DIR$/functions/firestore.indexes.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/package-lock 2.json" beforeDir="false" afterPath="$PROJECT_DIR$/functions/package-lock 2.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/functions/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/functions/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/index.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/middleware/auth.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/middleware/auth.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/routes/admin.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/admin.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/routes/employee.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/employee.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/routes/fare.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/fare.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/merchantFee.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/merchantStore.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/merchantStore.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/order.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/riderLocation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/riderLocation.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/acceptMerchant.route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/orders/acceptMerchant.route.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/getCustomerOrders.route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/orders/getCustomerOrders.route.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/placeOrder.route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/orders/placeOrder.route.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/functions/src/routes/rider.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/rider.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/routes/users.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/users.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/routes/xenditWebhook.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/xenditWebhook.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/schema/userValidation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/schema/userValidation.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/services/notificationService.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/services/notificationService.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/services/riderLocation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/services/riderLocation.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/services/walletService.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/services/walletService.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/services/xenditService.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/services/xenditService.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/types/express.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/types/express.d.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/utils/encryption.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/utils/encryption.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/utils/firestore.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/utils/firestore.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/utils/xendit.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/utils/xendit.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/tsconfig.dev.json" beforeDir="false" afterPath="$PROJECT_DIR$/functions/tsconfig.dev.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/functions/tsconfig.json" afterDir="false" />
@@ -74,8 +55,20 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;devjoseph1992&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/devjoseph1992/lalaba-server-dev.git&quot;,
+    &quot;accountId&quot;: &quot;16742c09-2819-42e6-980e-f928e9d3ae4c&quot;
+  }
+}</component>
   <component name="ProblemsViewState">
-    <option name="selectedTabId" value="ProjectErrors" />
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
@@ -86,24 +79,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/Users/joniebalagozajr/Desktop/findxnyapp/lalabadeploy-postprod/lalaba-server-dev",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "prettierjs.PrettierConfiguration.Package": "/Users/joniebalagozajr/Desktop/findxnyapp/lalabadeploy-postprod/lalaba-server-dev/functions/node_modules/prettier",
-    "settings.editor.selected.configurable": "settings.javascript.prettier",
-    "ts.external.directory.path": "/Users/joniebalagozajr/Desktop/findxnyapp/lalabadeploy-postprod/lalaba-server-dev/functions/node_modules/typescript/lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/joniebalagozajr/Desktop/lalaba-dev-app/lalaba-server-dev&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;/Users/joniebalagozajr/Desktop/lalaba-dev-app/lalaba-server-dev/functions/node_modules/prettier&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;settings.javascript.prettier&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Users/joniebalagozajr/Desktop/lalaba-dev-app/lalaba-server-dev/functions/node_modules/typescript/lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -133,10 +126,27 @@
       <workItem from="1744038524833" duration="733000" />
       <workItem from="1744039861421" duration="2000" />
       <workItem from="1744079244033" duration="7312000" />
+      <workItem from="1744201658251" duration="2000" />
+      <workItem from="1744201809546" duration="17000" />
+      <workItem from="1744203688752" duration="595000" />
+      <workItem from="1744204465430" duration="6625000" />
+      <workItem from="1744260767486" duration="4044000" />
+      <workItem from="1744271673723" duration="1417000" />
+      <workItem from="1744350507509" duration="721000" />
+      <workItem from="1744372686703" duration="3352000" />
+      <workItem from="1744380021397" duration="170000" />
+      <workItem from="1744381167953" duration="38000" />
+      <workItem from="1744381311222" duration="125000" />
+      <workItem from="1744387914872" duration="6871000" />
+      <workItem from="1744502275216" duration="3246000" />
+      <workItem from="1744508623393" duration="15643000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.rules" />
   </component>
 </project>

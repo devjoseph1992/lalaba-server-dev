@@ -2,18 +2,19 @@
 
 import { Router } from "express";
 import * as admin from "firebase-admin";
-import { getUsersByRole, updateUser, deleteUser } from "../utils/firestore";
-import { verifyFirebaseToken, isAdmin } from "../middleware/auth";
+import { deleteUser, getUsersByRole, updateUser } from "../utils/firestore";
+import { isAdmin, verifyFirebaseToken } from "../middleware/auth";
 import { createXenditCustomer } from "../services/xenditService";
 import { createWallet } from "../services/walletService";
 import { userSchema } from "../schema/userValidation";
-
+import { ensureDefaultCategories } from "../utils/ensureDefaultCategories";
+import { createDefaultServices } from "../utils/createDefaultServices";
 import z from "zod";
 
 const router = Router();
 
 /**
- * ✅ Utility function for pagination
+ * ✅ Pagination utility
  */
 const paginateResults = (users: any[], page: number, limit: number) => {
   const startIndex = (page - 1) * limit;
@@ -33,20 +34,18 @@ const paginateResults = (users: any[], page: number, limit: number) => {
 };
 
 /**
- * ✅ Get Users by Role (Admins Only) + Search Functionality
+ * ✅ Get users by role
  */
 router.get("/role/:role", verifyFirebaseToken, async (req, res) => {
   try {
     const { role } = req.params;
     const { page = 1, limit = 10, search = "" } = req.query as any;
-    const userRole = req.user?.role; // Get the role from Firebase Token
+    const userRole = req.user?.role;
 
-    // ✅ Employees can only access "rider" and "merchant"
     if (userRole === "employee" && role !== "rider" && role !== "merchant") {
       return res.status(403).json({ error: "Unauthorized access." });
     }
 
-    // ✅ Admins can access everything
     if (userRole === "admin" || userRole === "employee") {
       const users = await getUsersByRole(role);
 
@@ -59,7 +58,6 @@ router.get("/role/:role", verifyFirebaseToken, async (req, res) => {
       return res.status(200).json(paginateResults(users.users, page, limit));
     }
 
-    // ❌ If role is unknown, deny access
     return res.status(403).json({ error: "Unauthorized role access." });
   } catch (error) {
     console.error("❌ Error fetching users:", error);
@@ -68,13 +66,12 @@ router.get("/role/:role", verifyFirebaseToken, async (req, res) => {
 });
 
 /**
- * ✅ Get Employees with Pagination
+ * ✅ GET: /employees
  */
 router.get("/employees", verifyFirebaseToken, isAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query as any;
     const employees = await getUsersByRole("employee");
-
     return res.status(200).json(paginateResults(employees.users, page, limit));
   } catch (error) {
     console.error("❌ Error fetching employees:", error);
@@ -83,13 +80,12 @@ router.get("/employees", verifyFirebaseToken, isAdmin, async (req, res) => {
 });
 
 /**
- * ✅ Get Riders with Pagination
+ * ✅ GET: /riders
  */
 router.get("/riders", verifyFirebaseToken, isAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query as any;
     const riders = await getUsersByRole("rider");
-
     return res.status(200).json(paginateResults(riders.users, page, limit));
   } catch (error) {
     console.error("❌ Error fetching riders:", error);
@@ -98,13 +94,12 @@ router.get("/riders", verifyFirebaseToken, isAdmin, async (req, res) => {
 });
 
 /**
- * ✅ Get Merchants with Pagination
+ * ✅ GET: /merchants
  */
 router.get("/merchants", verifyFirebaseToken, isAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query as any;
     const merchants = await getUsersByRole("merchant");
-
     return res.status(200).json(paginateResults(merchants.users, page, limit));
   } catch (error) {
     console.error("❌ Error fetching merchants:", error);
@@ -113,23 +108,18 @@ router.get("/merchants", verifyFirebaseToken, isAdmin, async (req, res) => {
 });
 
 /**
- * ✅ Add a New User (Admins Can Add Employees, Riders & Merchants)
+ * ✅ POST: /add (add new user with role)
  */
 router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
   try {
-    // ✅ Validate request body with Zod
     const validatedData = userSchema.parse(req.body);
-
     const { role, email, password, firstName, lastName, phoneNumber, address, tinNumber } =
       validatedData;
-
     const createdBy = req.user?.uid;
 
-    // ✅ Check if `employeeId` already exists (only for employees)
     let employeeId = "";
     if (role === "employee") {
       employeeId = (validatedData as { employeeId: string }).employeeId;
-
       const existingEmployee = await admin
         .firestore()
         .collection("users")
@@ -144,7 +134,6 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
       }
     }
 
-    // ✅ Create Firebase Auth User
     const userRecord = await admin.auth().createUser({
       email,
       password,
@@ -164,7 +153,6 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // ✅ Handle Role-Specific Fields Explicitly
     if (role === "rider") {
       const {
         driverLicenseNumber,
@@ -173,31 +161,19 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
         barangayClearance,
         sssNumber,
         philhealthNumber,
-      } = validatedData as {
-        driverLicenseNumber: string;
-        plateNumber: string;
-        vehicleUnit: string;
-        barangayClearance: string;
-        sssNumber: string;
-        philhealthNumber: string;
-      };
+      } = validatedData as any;
 
       userData = {
         ...userData,
         driverLicenseNumber,
         plateNumber,
         vehicleUnit,
-        barangayClearance, // ✅ Riders require barangay clearance
-        sssNumber, // ✅ Only for riders
-        philhealthNumber, // ✅ Only for riders
+        barangayClearance,
+        sssNumber,
+        philhealthNumber,
       };
     } else if (role === "merchant") {
-      const { businessName, businessAddress, businessPermit } = validatedData as {
-        businessName: string;
-        businessAddress: string;
-        businessPermit: string;
-      };
-
+      const { businessName, businessAddress, businessPermit } = validatedData as any;
       userData = {
         ...userData,
         businessName,
@@ -205,7 +181,19 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
         businessPermit,
       };
 
-      // ❌ Do NOT include barangayClearance, sssNumber, or philhealthNumber for merchants
+      // ✅ Create root business doc with timestamps
+      const businessRef = admin.firestore().collection("businesses").doc(userRecord.uid);
+      await businessRef.set({
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: true,
+      });
+
+      // ✅ Seed default services and categories
+      await ensureDefaultCategories(userRecord.uid);
+      await createDefaultServices(userRecord.uid);
+
+      console.log(`✅ Merchant business initialized for: ${userRecord.uid}`);
     } else if (role === "employee") {
       const {
         jobTitle,
@@ -214,41 +202,33 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
         barangayClearance,
         sssNumber,
         philhealthNumber,
-      } = validatedData as {
-        jobTitle: string;
-        department: string;
-        employmentStatus: string;
-        barangayClearance: string;
-        sssNumber: string;
-        philhealthNumber: string;
-      };
+      } = validatedData as any;
 
       userData = {
         ...userData,
         jobTitle,
         department,
-        employeeId, // ✅ Ensure employeeId is correctly assigned
+        employeeId,
         employmentStatus,
-        barangayClearance, // ✅ Employees require barangay clearance
-        sssNumber, // ✅ Only for employees
-        philhealthNumber, // ✅ Only for employees
+        barangayClearance,
+        sssNumber,
+        philhealthNumber,
       };
     }
 
-    // ✅ Save user data to Firestore
     await admin.firestore().collection("users").doc(userRecord.uid).set(userData);
 
-    // ✅ Create a Wallet for Riders & Merchants
+    // ✅ Create wallet
     if (role === "rider" || role === "merchant") {
       try {
         await createWallet(userRecord.uid);
         console.log(`✅ Wallet created for ${role}: ${userRecord.uid}`);
       } catch (error) {
-        console.error(`❌ Error creating wallet for ${role}:`, error);
+        console.error(`❌ Wallet creation failed for ${role}:`, error);
       }
     }
 
-    // ✅ Create a Customer in Xendit (Only for Riders & Merchants)
+    // ✅ Create Xendit customer
     if (role === "rider" || role === "merchant") {
       try {
         const customer = await createXenditCustomer(
@@ -259,16 +239,15 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
           phoneNumber
         );
 
-        // ✅ Store the Xendit Customer ID inside Firestore
         await admin.firestore().collection("users").doc(userRecord.uid).update({
           xenditCustomerId: customer.id,
           xenditReferenceId: customer.reference_id,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        console.log(`✅ Xendit Customer linked for ${role}: ${userRecord.uid}`);
+        console.log(`✅ Xendit linked for ${role}: ${userRecord.uid}`);
       } catch (error) {
-        console.error(`❌ Error linking Xendit customer for ${role}:`, error);
+        console.error(`❌ Xendit linkage failed:`, error);
       }
     }
 
@@ -278,10 +257,7 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        error: "❌ Validation Failed",
-        details: error.errors,
-      });
+      return res.status(400).json({ error: "❌ Validation Failed", details: error.errors });
     }
     console.error("❌ Error adding user:", error);
     return res.status(500).json({ error: "Internal Server Error" });
@@ -289,7 +265,7 @@ router.post("/add", verifyFirebaseToken, isAdmin, async (req, res) => {
 });
 
 /**
- * ✅ Update User Details (Admins Can Update Any User)
+ * ✅ PUT: /update/:uid
  */
 router.put("/update/:uid", verifyFirebaseToken, isAdmin, async (req, res) => {
   try {
@@ -310,7 +286,7 @@ router.put("/update/:uid", verifyFirebaseToken, isAdmin, async (req, res) => {
 });
 
 /**
- * ✅ Delete a User (Admins Can Delete Users)
+ * ✅ DELETE: /delete/:uid
  */
 router.delete("/delete/:uid", verifyFirebaseToken, isAdmin, async (req, res) => {
   try {

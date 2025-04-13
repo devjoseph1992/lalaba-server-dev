@@ -1,6 +1,6 @@
 // function/src/middleware/auth.ts
 
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 import * as admin from "firebase-admin";
 
 /**

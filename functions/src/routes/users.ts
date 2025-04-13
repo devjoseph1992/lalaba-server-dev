@@ -1,7 +1,7 @@
 // functions/src/routes/users.ts
 
 import { Router } from "express";
-import { addUser, getUsersByRole, updateUser, deleteUser } from "../utils/firestore";
+import { addUser, deleteUser, getUsersByRole, updateUser } from "../utils/firestore";
 import { isAdmin } from "../middleware/auth";
 
 const router = Router();

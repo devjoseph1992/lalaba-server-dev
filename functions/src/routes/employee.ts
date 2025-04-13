@@ -1,17 +1,18 @@
 // functions/src/routes/employee.ts
 
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 import * as admin from "firebase-admin";
-import { verifyFirebaseToken, isAdminOrEmployee } from "../middleware/auth";
-import { updateUser, deleteUser } from "../utils/firestore";
-import { createWallet } from "../services/walletService"; // ✅ Wallet Service
-import { createXenditCustomer } from "../services/xenditService"; // ✅ Xendit Service
-import { Request, Response } from "express";
+import { isAdminOrEmployee, verifyFirebaseToken } from "../middleware/auth";
+import { deleteUser, updateUser } from "../utils/firestore";
+import { createWallet } from "../services/walletService";
+import { createXenditCustomer } from "../services/xenditService";
+import { ensureDefaultCategories } from "../utils/ensureDefaultCategories";
+import { createDefaultServices } from "../utils/createDefaultServices";
 
 const router = Router();
 
 /**
- * ✅ Get All Employees (Admin & Employees Can View)
+ * ✅ Get All Employees
  */
 router.get("/", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
   try {
@@ -24,7 +25,6 @@ router.get("/", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
       id: doc.id,
       ...doc.data(),
     }));
-
     return res.status(200).json({ employees });
   } catch (error) {
     console.error("❌ Error fetching employees:", error);
@@ -33,7 +33,7 @@ router.get("/", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
 });
 
 /**
- * ✅ Get All Riders with Pagination (Admin & Employees Can View)
+ * ✅ Get All Riders with Pagination
  */
 router.get("/riders", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
   try {
@@ -43,9 +43,10 @@ router.get("/riders", verifyFirebaseToken, isAdminOrEmployee, async (req, res) =
 
     const snapshot = await admin.firestore().collection("users").where("role", "==", "rider").get();
     const totalRiders = snapshot.docs.length;
-    const riders = snapshot.docs
-      .slice(startIndex, startIndex + limit)
-      .map((doc) => ({ id: doc.id, ...doc.data() }));
+    const riders = snapshot.docs.slice(startIndex, startIndex + limit).map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
     return res.status(200).json({
       riders,
@@ -65,7 +66,7 @@ router.get("/riders", verifyFirebaseToken, isAdminOrEmployee, async (req, res) =
 });
 
 /**
- * ✅ Get All Merchants with Pagination (Admin & Employees Can View)
+ * ✅ Get All Merchants with Pagination
  */
 router.get("/merchants", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
   try {
@@ -79,9 +80,10 @@ router.get("/merchants", verifyFirebaseToken, isAdminOrEmployee, async (req, res
       .where("role", "==", "merchant")
       .get();
     const totalMerchants = snapshot.docs.length;
-    const merchants = snapshot.docs
-      .slice(startIndex, startIndex + limit)
-      .map((doc) => ({ id: doc.id, ...doc.data() }));
+    const merchants = snapshot.docs.slice(startIndex, startIndex + limit).map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
     return res.status(200).json({
       merchants,
@@ -101,7 +103,7 @@ router.get("/merchants", verifyFirebaseToken, isAdminOrEmployee, async (req, res
 });
 
 /**
- * ✅ Update Rider Details (Admin & Employees Can Update)
+ * ✅ Update Rider
  */
 router.put("/riders/:id", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
   try {
@@ -114,7 +116,7 @@ router.put("/riders/:id", verifyFirebaseToken, isAdminOrEmployee, async (req, re
 });
 
 /**
- * ✅ Delete Rider (Admin & Employees Can Delete)
+ * ✅ Delete Rider
  */
 router.delete("/riders/:id", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
   try {
@@ -127,7 +129,7 @@ router.delete("/riders/:id", verifyFirebaseToken, isAdminOrEmployee, async (req,
 });
 
 /**
- * ✅ Add a New User (Rider or Merchant)
+ * ✅ Add Rider or Merchant
  */
 const addUser = async (req: Request, res: Response, role: "rider" | "merchant") => {
   try {
@@ -159,15 +161,25 @@ const addUser = async (req: Request, res: Response, role: "rider" | "merchant") 
     } else if (role === "merchant") {
       const { businessName, businessAddress } = req.body;
       userData = { ...userData, businessName, businessAddress };
+
+      // ✅ Create root business doc
+      const businessRef = admin.firestore().collection("businesses").doc(userRecord.uid);
+      await businessRef.set({
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: false, // ✅ Business setup not complete yet
+      });
+
+      // ✅ Seed categories and services
+      await ensureDefaultCategories(userRecord.uid);
+      await createDefaultServices(userRecord.uid);
+
+      console.log(`✅ Business setup initialized for merchant: ${userRecord.uid}`);
     }
 
-    // ✅ Save user to Firestore
     await admin.firestore().collection("users").doc(userRecord.uid).set(userData);
 
-    // ✅ Create Wallet for Riders & Merchants
     await createWallet(userRecord.uid);
-
-    // ✅ Create Xendit Customer for Riders & Merchants
     await createXenditCustomer(userRecord.uid, email, firstName, lastName, phoneNumber);
 
     return res.status(201).json({
@@ -180,18 +192,18 @@ const addUser = async (req: Request, res: Response, role: "rider" | "merchant") 
   }
 };
 
-// ✅ Add a New Rider
+// ✅ Add Rider
 router.post("/riders/add", verifyFirebaseToken, isAdminOrEmployee, (req, res) =>
   addUser(req, res, "rider")
 );
 
-// ✅ Add a New Merchant
+// ✅ Add Merchant (with seeded business info)
 router.post("/merchants/add", verifyFirebaseToken, isAdminOrEmployee, (req, res) =>
   addUser(req, res, "merchant")
 );
 
 /**
- * ✅ Update Merchant Details (Admin & Employees Can Update)
+ * ✅ Update Merchant
  */
 router.put("/merchants/:id", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
   try {
@@ -204,7 +216,7 @@ router.put("/merchants/:id", verifyFirebaseToken, isAdminOrEmployee, async (req,
 });
 
 /**
- * ✅ Delete Merchant (Admin & Employees Can Delete)
+ * ✅ Delete Merchant
  */
 router.delete("/merchants/:id", verifyFirebaseToken, isAdminOrEmployee, async (req, res) => {
   try {
