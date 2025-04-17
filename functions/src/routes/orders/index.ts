@@ -5,6 +5,7 @@ import completeOrderRoute from "./completeOrder.route";
 import cancelOrderRoute from "./cancelOrder.route";
 import placeOrderRoute from "./placeOrder.route";
 import getCustomerOrdersRoute from "./getCustomerOrders.route";
+import getOrderByIdRoute from "./getOrderById.route";
 
 export default [
   getCustomerOrdersRoute,
@@ -14,4 +15,5 @@ export default [
   updateWeightRoute,
   completeOrderRoute,
   cancelOrderRoute,
+  getOrderByIdRoute,
 ];
