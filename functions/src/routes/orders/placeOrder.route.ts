@@ -15,6 +15,18 @@ interface Location {
 
 interface ServiceData {
   price: string | number;
+  name?: string;
+  inclusions?: string[];
+}
+
+interface ProductData {
+  name: string;
+  price: number | string;
+}
+
+interface ExtraInput {
+  id: string;
+  quantity: number;
 }
 
 interface UserData {
@@ -23,25 +35,34 @@ interface UserData {
 
 interface PlaceOrderRequestBody {
   merchantId: string;
-  washType: string;
+  serviceId: string;
   customerLocation: Location;
-  extras?: string[];
+  customerAddress: string;
+  extras?: ExtraInput[];
   estimatedKilo: number;
+  orderType: "Delivery" | "Pick-up";
 }
 
-// Route
 router.post(
-  "/order/place",
+  "/place",
   verifyFirebaseToken,
   hasBalance,
   async (req: Request<{}, {}, PlaceOrderRequestBody> & CustomRequest, res: Response) => {
     try {
-      const { merchantId, washType, customerLocation, extras, estimatedKilo } = req.body;
+      const {
+        merchantId,
+        serviceId,
+        customerLocation,
+        customerAddress,
+        extras = [], // ✅ fallback for optional
+        estimatedKilo,
+        orderType,
+      } = req.body;
 
       const userId = req.user?.uid;
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-      // Check if user is a customer
+      // 🔐 Check customer role
       const userSnap = await admin.firestore().collection("users").doc(userId).get();
       const userData = userSnap.data() as UserData | undefined;
 
@@ -49,50 +70,121 @@ router.post(
         return res.status(403).json({ error: "Only customers can place orders." });
       }
 
+      // ✅ Validate fields
       if (
         !merchantId ||
-        !washType ||
+        !serviceId ||
         !customerLocation?.latitude ||
         !customerLocation?.longitude ||
-        typeof estimatedKilo !== "number"
+        typeof estimatedKilo !== "number" ||
+        !customerAddress ||
+        !orderType ||
+        !["Delivery", "Pick-up"].includes(orderType)
       ) {
         return res.status(400).json({ error: "Missing or invalid required fields." });
       }
 
-      // Get merchant location
-      const merchantSnap = await admin.firestore().collection("users").doc(merchantId).get();
-      const merchantData = merchantSnap.data();
-      const merchantLocation = merchantData?.location as Location | undefined;
+      // 📍 Get merchant details
+      const detailsRef = admin
+        .firestore()
+        .collection("businesses")
+        .doc(merchantId)
+        .collection("info")
+        .doc("details");
 
-      if (!merchantLocation?.latitude || !merchantLocation?.longitude) {
+      const detailsSnap = await detailsRef.get();
+      const detailsData = detailsSnap.data();
+
+      if (!detailsData || !detailsData.coordinates?.lat || !detailsData.coordinates?.lng) {
         return res.status(400).json({ error: "Merchant location is missing." });
       }
 
-      // Fetch washType pricing
-      const servicesSnap = await admin
+      const merchantLocation = {
+        latitude: detailsData.coordinates.lat,
+        longitude: detailsData.coordinates.lng,
+      };
+
+      const { exactAddress = "", barangay = "", city = "" } = detailsData;
+
+      const merchantAddress = `${exactAddress}${barangay ? ", Brgy. " + barangay : ""}${city ? ", " + city : ""}`;
+
+      // 💰 Fetch service
+      const serviceDoc = await admin
         .firestore()
         .collection("businesses")
         .doc(merchantId)
         .collection("services")
-        .where("name", "==", washType)
-        .limit(1)
+        .doc(serviceId)
         .get();
 
-      if (servicesSnap.empty) {
-        return res.status(404).json({ error: "Wash type not found for this merchant." });
+      if (!serviceDoc.exists) {
+        return res.status(404).json({ error: "Service not found." });
       }
 
-      const serviceData = servicesSnap.docs[0].data() as ServiceData;
-      const washTypePrice =
+      const serviceData = serviceDoc.data() as ServiceData;
+      const pricePerKilo =
         typeof serviceData.price === "string" ? parseFloat(serviceData.price) : serviceData.price;
 
-      if (!washTypePrice || washTypePrice <= 0) {
-        return res.status(400).json({ error: "Invalid wash type price." });
+      if (!pricePerKilo || pricePerKilo <= 0) {
+        return res.status(400).json({ error: "Invalid service price." });
       }
 
-      const price = washTypePrice * estimatedKilo;
+      const basePrice = pricePerKilo * estimatedKilo;
 
-      // Calculate distance and rider fee
+      const serviceName = serviceData.name || "Unnamed Service";
+      const inclusions = serviceData.inclusions || [];
+
+      // 🎁 Fetch extra products with quantity
+      let extraProducts: { id: string; name: string; price: number; quantity: number }[] = [];
+
+      if (extras.length > 0) {
+        const extrasSnapshot = await Promise.all(
+          extras.map((extra: ExtraInput) =>
+            admin
+              .firestore()
+              .collection("businesses")
+              .doc(merchantId)
+              .collection("products")
+              .doc(extra.id)
+              .get()
+          )
+        );
+
+        extraProducts = extrasSnapshot.map((snap, index) => {
+          const input: ExtraInput = extras[index];
+
+          try {
+            if (!snap.exists) {
+              console.warn(`⚠️ Product not found: ${input.id}`);
+              return {
+                id: input.id,
+                name: "Unknown Extra",
+                price: 0,
+                quantity: input.quantity || 1,
+              };
+            }
+
+            const data = snap.data() as ProductData;
+            const price = typeof data.price === "string" ? parseFloat(data.price) : data.price;
+
+            if (isNaN(price)) {
+              throw new Error(`Invalid price for product ${input.id}`);
+            }
+
+            return {
+              id: input.id,
+              name: data.name || "Unnamed Extra",
+              price,
+              quantity: input.quantity || 1,
+            };
+          } catch (err) {
+            console.error("❌ Failed to process extra product:", err);
+            throw err;
+          }
+        });
+      }
+
+      // 📏 Calculate distance & fees
       const distance = calculateDistance(
         customerLocation.latitude,
         customerLocation.longitude,
@@ -105,37 +197,46 @@ router.post(
       const riderFee = baseFare + distanceFee;
       const riderPlatformFee = riderFee * 0.2;
 
-      // Create order
+      // 📝 Prepare order
       const orderRef = admin.firestore().collection("orders").doc();
       const orderData = {
         orderId: orderRef.id,
-        userId,
+        customerId: userId,
         merchantId,
-        washType,
-        estimatedKilo,
-        price: parseFloat(price.toFixed(2)),
-        status: "pending",
-        customerLocation,
         merchantLocation,
-        extras: extras || null,
+        merchantAddress,
+        serviceId,
+        serviceName,
+        inclusions,
+        orderType,
+        estimatedKilo,
+        price: parseFloat(basePrice.toFixed(2)),
+        customerLocation,
+        customerAddress,
+        extras,
+        extraProducts,
         distance: parseFloat(distance.toFixed(2)),
         riderFee,
         riderPlatformFee: parseFloat(riderPlatformFee.toFixed(2)),
+        status: "pending",
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       };
+
+      console.log("📝 Final Order Data to Save:", JSON.stringify(orderData, null, 2));
 
       await orderRef.set(orderData);
 
       return res.status(201).json({
         message: "Order placed successfully.",
         orderId: orderRef.id,
-        price: parseFloat(price.toFixed(2)),
+        price: parseFloat(basePrice.toFixed(2)),
         distance: `${distance.toFixed(2)} km`,
         riderFee,
         riderPlatformFee: parseFloat(riderPlatformFee.toFixed(2)),
       });
-    } catch (err) {
-      console.error("❌ Error placing order:", err);
+    } catch (err: any) {
+      console.error("❌ Error placing order:", err.message);
+      console.error("📛 Full Stack Trace:", err);
       return res.status(500).json({ error: "Internal Server Error" });
     }
   }

@@ -39,7 +39,6 @@ router.get(
 
 /**
  * ✅ PATCH /businesses/:id/services/serviceId/:name
- * Updates a service by its `name` field (Regular or Premium)
  */
 router.patch(
   "/:id/services/serviceId/:name",
@@ -58,7 +57,6 @@ router.patch(
 
       // ✅ Validate body using Zod schema
       const parsed = serviceUpdateSchema.safeParse(req.body);
-
       if (!parsed.success) {
         return res.status(400).json({
           error: "Validation failed",
@@ -66,7 +64,16 @@ router.patch(
         });
       }
 
-      const { price, inclusions, defaultDetergentId, defaultFabricConditionerId } = parsed.data;
+      const {
+        price,
+        inclusions,
+        defaultDetergentId,
+        defaultDetergentName,
+        detergentPerKilo,
+        defaultFabricConditionerId,
+        defaultFabricConditionerName,
+        fabricPerKilo,
+      } = parsed.data;
 
       const businessRef = admin.firestore().collection("businesses").doc(merchantId);
       const servicesRef = businessRef.collection("services");
@@ -81,7 +88,7 @@ router.patch(
       const serviceDoc = serviceSnap.docs[0];
       const serviceId = serviceDoc.id;
 
-      // ✅ Validate detergent/fabric IDs
+      // 🔍 Ensure default product IDs exist
       const [detergentSnap, fabricSnap] = await Promise.all([
         productRef.doc(defaultDetergentId).get(),
         productRef.doc(defaultFabricConditionerId).get(),
@@ -90,7 +97,6 @@ router.patch(
       if (!detergentSnap.exists) {
         return res.status(400).json({ error: "Default detergent not found." });
       }
-
       if (!fabricSnap.exists) {
         return res.status(400).json({ error: "Default fabric conditioner not found." });
       }
@@ -98,19 +104,22 @@ router.patch(
       const now = admin.firestore.FieldValue.serverTimestamp();
       const createdAt = serviceDoc.data().createdAt || now;
 
-      // 🔁 Update the service
-      await servicesRef.doc(serviceId).set(
-        {
-          name,
-          price,
-          inclusions,
-          defaultDetergentId,
-          defaultFabricConditionerId,
-          updatedAt: now,
-          createdAt,
-        },
-        { merge: true }
-      );
+      // 🔁 Final payload
+      const updatePayload = {
+        name,
+        price,
+        inclusions,
+        defaultDetergentId,
+        defaultDetergentName,
+        detergentPerKilo,
+        defaultFabricConditionerId,
+        defaultFabricConditionerName,
+        fabricPerKilo,
+        updatedAt: now,
+        createdAt,
+      };
+
+      await servicesRef.doc(serviceId).set(updatePayload, { merge: true });
 
       return res.status(200).json({ message: `✅ ${name} service updated successfully.` });
     } catch (err) {

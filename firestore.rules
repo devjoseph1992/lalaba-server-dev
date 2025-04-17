@@ -35,28 +35,22 @@ service cloud.firestore {
       allow create: if request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "customer" &&
         request.resource.data.merchantId is string &&
-        (
-          (
-            request.resource.data.productId is string &&
-            exists(/databases/$(database)/documents/businesses/$(request.resource.data.merchantId)/products/$(request.resource.data.productId))
-          ) ||
-          (
-            request.resource.data.serviceId is string &&
-            exists(/databases/$(database)/documents/businesses/$(request.resource.data.merchantId)/services/$(request.resource.data.serviceId))
-          )
-        );
+        request.resource.data.serviceId is string &&
+        exists(/databases/$(database)/documents/businesses/$(request.resource.data.merchantId)/services/$(request.resource.data.serviceId));
 
+      // ✅ PATCHED: Allow access by matching `customerId`, not `userId`
       allow read, update, delete: if request.auth != null &&
         (
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" ||
-          request.auth.uid in [resource.data.customerId, resource.data.merchantId, resource.data.riderId]
+          request.auth.uid == resource.data.customerId ||
+          request.auth.uid == resource.data.merchantId ||
+          request.auth.uid == resource.data.riderId
         );
     }
 
     // BUSINESSES
     match /businesses/{businessId} {
       allow list: if request.auth != null;
-
       allow get, read: if request.auth != null;
 
       allow write: if request.auth != null &&
@@ -66,12 +60,12 @@ service cloud.firestore {
       allow create, delete: if request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
 
-      // BUSINESS DETAILS (✅ patched)
+      // BUSINESS DETAILS
       match /info/details {
         allow read: if request.auth != null &&
           (
-            request.auth.uid == businessId ||  // Merchant can read their own
-            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" // Optional: Admin read access
+            request.auth.uid == businessId ||
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
           );
 
         allow write: if request.auth != null &&

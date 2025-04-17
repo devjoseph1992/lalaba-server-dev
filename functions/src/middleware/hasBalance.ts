@@ -14,6 +14,17 @@ export const hasBalance = async (
       return;
     }
 
+    // 🔍 Get user role
+    const userSnap = await admin.firestore().collection("users").doc(userId).get();
+    const userData = userSnap.data();
+    const role = userData?.role;
+
+    // ✅ Skip balance check for customers
+    if (role === "customer") {
+      return next();
+    }
+
+    // 👇 Balance check applies to merchants and riders
     const walletSnap = await admin.firestore().collection("wallets").doc(userId).get();
 
     if (!walletSnap.exists) {

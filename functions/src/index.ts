@@ -15,6 +15,8 @@ import orderRoutes from "./routes/orders";
 
 import businessesRoutes from "./routes/businesses";
 
+import CustomersBusinessRoutes from "./routes/customers";
+
 import dotenv from "dotenv";
 
 // Load environment variables
@@ -33,6 +35,7 @@ app.use("/wallet", walletRoutes);
 app.use("/rider", riderRoutes);
 app.use("/orders", orderRoutes);
 app.use("/businesses", businessesRoutes);
+app.use("/customers", CustomersBusinessRoutes);
 
 // ✅ Health Check Route (Fix for Cloud Run Healthcheck Failures)
 app.get("/", (req, res) => {
