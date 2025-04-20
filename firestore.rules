@@ -6,6 +6,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, update: if request.auth != null && request.auth.uid == userId;
 
+      // ✅ Allow list + get for admin & employee
       allow list, get: if request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["admin", "employee"];
 
@@ -38,14 +39,49 @@ service cloud.firestore {
         request.resource.data.serviceId is string &&
         exists(/databases/$(database)/documents/businesses/$(request.resource.data.merchantId)/services/$(request.resource.data.serviceId));
 
-      // ✅ PATCHED: Allow access by matching `customerId`, not `userId`
-      allow read, update, delete: if request.auth != null &&
+      // ✅ View or delete by: admin, customer, merchant, or rider
+      allow read, delete: if request.auth != null &&
         (
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" ||
           request.auth.uid == resource.data.customerId ||
           request.auth.uid == resource.data.merchantId ||
           request.auth.uid == resource.data.riderId
         );
+
+      // ✅ Allow updates (rider, merchant, return rider)
+      allow update: if request.auth != null &&
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" ||
+          request.auth.uid == resource.data.customerId ||
+          request.auth.uid == resource.data.merchantId ||
+          request.auth.uid == resource.data.riderId ||
+          request.auth.uid == resource.data.currentRiderId ||
+          request.auth.uid == resource.data.returnCurrentRiderId
+        );
+
+      // ✅ Secure QR Code for first delivery
+      match /secure/qr {
+        allow write: if request.auth != null &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "merchant";
+
+        allow read: if request.auth != null &&
+          (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" ||
+            request.auth.uid == resource.data.currentRiderId
+          );
+      }
+
+      // ✅ Secure QR Code for return delivery
+      match /deliveryBackBooking/secureQr {
+        allow write: if request.auth != null &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "merchant";
+
+        allow read: if request.auth != null &&
+          (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" ||
+            request.auth.uid == resource.data.returnCurrentRiderId
+          );
+      }
     }
 
     // BUSINESSES
@@ -60,7 +96,6 @@ service cloud.firestore {
       allow create, delete: if request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
 
-      // BUSINESS DETAILS
       match /info/details {
         allow read: if request.auth != null &&
           (
@@ -73,7 +108,6 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "merchant";
       }
 
-      // PRODUCTS
       match /products/{productId} {
         allow read: if request.auth != null;
 
@@ -82,7 +116,6 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "merchant";
       }
 
-      // SERVICES
       match /services/{serviceId} {
         allow read: if request.auth != null;
 
@@ -91,7 +124,6 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "merchant";
       }
 
-      // CATEGORIES
       match /categories/{categoryId} {
         allow read: if request.auth != null;
 

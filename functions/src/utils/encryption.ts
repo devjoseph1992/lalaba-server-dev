@@ -1,11 +1,15 @@
 import * as crypto from "crypto";
 import * as functions from "firebase-functions";
+import * as dotenv from "dotenv";
 
-// ✅ Load secret key from Firebase Functions config
-const SECRET_KEY = functions.config().wallet.secret_key;
+// ✅ Load .env for local development
+dotenv.config();
+
+// ✅ Load secret key from environment OR Firebase Functions config
+const SECRET_KEY = process.env.WALLET_SECRET_KEY || functions.config().wallet?.secret_key;
 
 if (!SECRET_KEY) {
-  throw new Error("❌ WALLET_SECRET_KEY is missing in Firebase config.");
+  throw new Error("❌ WALLET_SECRET_KEY is missing in .env or Firebase config.");
 }
 
 // ✅ Convert secret key to a 32-byte buffer using SHA-256

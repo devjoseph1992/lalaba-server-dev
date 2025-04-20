@@ -1,13 +1,11 @@
 import { Request, Response, Router } from "express";
 import * as admin from "firebase-admin";
 import { verifyFirebaseToken } from "../../middleware/auth";
-import { hasBalance } from "../../middleware/hasBalance";
 import { calculateDistance } from "../../utils/calculateDistance";
 import { CustomRequest } from "../../types/global";
 
 const router = Router();
 
-// Types
 interface Location {
   latitude: number;
   longitude: number;
@@ -31,6 +29,7 @@ interface ExtraInput {
 
 interface UserData {
   role?: string;
+  name?: string; // ✅ Get customer name
 }
 
 interface PlaceOrderRequestBody {
@@ -41,12 +40,12 @@ interface PlaceOrderRequestBody {
   extras?: ExtraInput[];
   estimatedKilo: number;
   orderType: "Delivery" | "Pick-up";
+  paymentMethod: "GCash" | "Cash"; // ✅ Add payment method
 }
 
 router.post(
   "/place",
   verifyFirebaseToken,
-  hasBalance,
   async (req: Request<{}, {}, PlaceOrderRequestBody> & CustomRequest, res: Response) => {
     try {
       const {
@@ -54,20 +53,46 @@ router.post(
         serviceId,
         customerLocation,
         customerAddress,
-        extras = [], // ✅ fallback for optional
+        extras = [],
         estimatedKilo,
         orderType,
+        paymentMethod,
       } = req.body;
 
       const userId = req.user?.uid;
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-      // 🔐 Check customer role
+      // 🔐 Validate customer
       const userSnap = await admin.firestore().collection("users").doc(userId).get();
-      const userData = userSnap.data() as UserData | undefined;
+      const userData = userSnap.data() as UserData;
 
       if (!userData || userData.role !== "customer") {
         return res.status(403).json({ error: "Only customers can place orders." });
+      }
+
+      const customerName = userData.name || "Unnamed Customer"; // ✅
+
+      // 🧼 Check for existing pending order
+      const existingPendingOrder = await admin
+        .firestore()
+        .collection("orders")
+        .where("customerId", "==", userId)
+        .where("status", "==", "pending")
+        .limit(1)
+        .get();
+
+      if (!existingPendingOrder.empty) {
+        return res.status(400).json({
+          error: "You already have a pending order. Please complete or cancel it first.",
+        });
+      }
+
+      // 🔐 Merchant check
+      const merchantSnap = await admin.firestore().collection("users").doc(merchantId).get();
+      const merchantData = merchantSnap.data() as UserData;
+
+      if (!merchantSnap.exists || merchantData?.role !== "merchant") {
+        return res.status(400).json({ error: "Invalid merchantId." });
       }
 
       // ✅ Validate fields
@@ -79,12 +104,14 @@ router.post(
         typeof estimatedKilo !== "number" ||
         !customerAddress ||
         !orderType ||
-        !["Delivery", "Pick-up"].includes(orderType)
+        !["Delivery", "Pick-up"].includes(orderType) ||
+        !paymentMethod ||
+        !["GCash", "Cash"].includes(paymentMethod)
       ) {
         return res.status(400).json({ error: "Missing or invalid required fields." });
       }
 
-      // 📍 Get merchant details
+      // 📍 Get merchant coordinates
       const detailsRef = admin
         .firestore()
         .collection("businesses")
@@ -95,7 +122,7 @@ router.post(
       const detailsSnap = await detailsRef.get();
       const detailsData = detailsSnap.data();
 
-      if (!detailsData || !detailsData.coordinates?.lat || !detailsData.coordinates?.lng) {
+      if (!detailsData?.coordinates?.lat || !detailsData?.coordinates?.lng) {
         return res.status(400).json({ error: "Merchant location is missing." });
       }
 
@@ -104,11 +131,11 @@ router.post(
         longitude: detailsData.coordinates.lng,
       };
 
-      const { exactAddress = "", barangay = "", city = "" } = detailsData;
+      const merchantAddress = `${detailsData.exactAddress ?? ""}${
+        detailsData.barangay ? ", Brgy. " + detailsData.barangay : ""
+      }${detailsData.city ? ", " + detailsData.city : ""}`;
 
-      const merchantAddress = `${exactAddress}${barangay ? ", Brgy. " + barangay : ""}${city ? ", " + city : ""}`;
-
-      // 💰 Fetch service
+      // 💰 Fetch service data
       const serviceDoc = await admin
         .firestore()
         .collection("businesses")
@@ -130,11 +157,10 @@ router.post(
       }
 
       const basePrice = pricePerKilo * estimatedKilo;
+      const serviceName = serviceData.name ?? "Unnamed Service";
+      const inclusions = serviceData.inclusions ?? [];
 
-      const serviceName = serviceData.name || "Unnamed Service";
-      const inclusions = serviceData.inclusions || [];
-
-      // 🎁 Fetch extra products with quantity
+      // 🎁 Extras
       let extraProducts: { id: string; name: string; price: number; quantity: number }[] = [];
 
       if (extras.length > 0) {
@@ -151,40 +177,32 @@ router.post(
         );
 
         extraProducts = extrasSnapshot.map((snap, index) => {
-          const input: ExtraInput = extras[index];
-
-          try {
-            if (!snap.exists) {
-              console.warn(`⚠️ Product not found: ${input.id}`);
-              return {
-                id: input.id,
-                name: "Unknown Extra",
-                price: 0,
-                quantity: input.quantity || 1,
-              };
-            }
-
-            const data = snap.data() as ProductData;
-            const price = typeof data.price === "string" ? parseFloat(data.price) : data.price;
-
-            if (isNaN(price)) {
-              throw new Error(`Invalid price for product ${input.id}`);
-            }
-
+          const input = extras[index];
+          if (!snap.exists) {
+            console.warn(`⚠️ Product not found: ${input.id}`);
             return {
               id: input.id,
-              name: data.name || "Unnamed Extra",
-              price,
+              name: "Unknown Extra",
+              price: 0,
               quantity: input.quantity || 1,
             };
-          } catch (err) {
-            console.error("❌ Failed to process extra product:", err);
-            throw err;
           }
+
+          const data = snap.data() as ProductData;
+          const price = typeof data.price === "string" ? parseFloat(data.price) : data.price;
+
+          if (isNaN(price)) throw new Error(`Invalid price for product ${input.id}`);
+
+          return {
+            id: input.id,
+            name: data.name ?? "Unnamed Extra",
+            price,
+            quantity: input.quantity || 1,
+          };
         });
       }
 
-      // 📏 Calculate distance & fees
+      // 🚗 Calculate distance and rider fee
       const distance = calculateDistance(
         customerLocation.latitude,
         customerLocation.longitude,
@@ -197,11 +215,12 @@ router.post(
       const riderFee = baseFare + distanceFee;
       const riderPlatformFee = riderFee * 0.2;
 
-      // 📝 Prepare order
+      // 📝 Create order
       const orderRef = admin.firestore().collection("orders").doc();
       const orderData = {
         orderId: orderRef.id,
         customerId: userId,
+        customerName, // ✅
         merchantId,
         merchantLocation,
         merchantAddress,
@@ -209,6 +228,7 @@ router.post(
         serviceName,
         inclusions,
         orderType,
+        paymentMethod, // ✅
         estimatedKilo,
         price: parseFloat(basePrice.toFixed(2)),
         customerLocation,
@@ -222,21 +242,18 @@ router.post(
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       };
 
-      console.log("📝 Final Order Data to Save:", JSON.stringify(orderData, null, 2));
-
       await orderRef.set(orderData);
 
       return res.status(201).json({
         message: "Order placed successfully.",
         orderId: orderRef.id,
-        price: parseFloat(basePrice.toFixed(2)),
+        price: orderData.price,
         distance: `${distance.toFixed(2)} km`,
         riderFee,
-        riderPlatformFee: parseFloat(riderPlatformFee.toFixed(2)),
+        riderPlatformFee: orderData.riderPlatformFee,
       });
     } catch (err: any) {
       console.error("❌ Error placing order:", err.message);
-      console.error("📛 Full Stack Trace:", err);
       return res.status(500).json({ error: "Internal Server Error" });
     }
   }
