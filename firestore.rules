@@ -19,6 +19,11 @@ service cloud.firestore {
           ) ||
           request.resource.data.role == "customer"
         );
+
+      // ✅ PATCH: Addresses Subcollection under users
+      match /addresses/{addressId} {
+        allow create, read, update, delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     // WALLETS

@@ -30,5 +30,8 @@ export const businessSetupSchema = z.object({
     invalid_type_error: "orderTypeDelivery must be a boolean",
   }),
 
-  status: z.boolean().optional().default(false), // ✅ Setup completion status
+  status: z.boolean().optional().default(false),
+
+  // ✅ NEW FIELD
+  description: z.string().max(1000, "Description must be 1000 characters or less").optional(),
 });

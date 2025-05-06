@@ -35,6 +35,7 @@ router.post(
         openingHours,
         orderTypeDelivery,
         status,
+        description, // ✅ optional new field
       } = validation.data;
 
       const now = admin.firestore.FieldValue.serverTimestamp();
@@ -51,6 +52,7 @@ router.post(
       // ✅ Set root business document
       await businessRef.set(
         {
+          merchantId: userId,
           createdAt: existingRoot?.createdAt || now,
           updatedAt: now,
           isOnline: existingRoot?.isOnline ?? false,
@@ -69,8 +71,11 @@ router.post(
           imageUrl: imageUrl || null,
           phoneNumber,
           openingHours,
-          orderTypeDelivery, // ✅ Delivery (true) / Pick-up (false)
+          orderTypeDelivery,
           status: typeof status === "boolean" ? status : false,
+          description: description || "", // ✅ default to empty
+          rating: existingDetails?.rating ?? 0, // ✅ persist or initialize rating
+          reviews: existingDetails?.reviews ?? [], // ✅ persist or initialize reviews
           createdAt: existingDetails?.createdAt || now,
           updatedAt: now,
         },

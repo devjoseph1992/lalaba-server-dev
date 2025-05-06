@@ -1,146 +1,89 @@
-// function/src/routes/xenditWebhook.ts
-
 import { Router } from "express";
 import * as admin from "firebase-admin";
-import { sendEmailNotification, sendPushNotification } from "../services/notificationService";
 import * as dotenv from "dotenv";
-import { decrypt, encrypt } from "../utils/encryption"; // Import encryption utilities
 
-dotenv.config(); // ✅ Load .env variables
+dotenv.config();
 
 const router = Router();
-
-// ✅ Load Xendit Callback Token from .env
 const XENDIT_CALLBACK_TOKEN = process.env.XENDIT_CALLBACK_TOKEN ?? "";
 
 /**
- * ✅ Webhook Listener for Xendit Payments
+ * ✅ Webhook for GCash Payment Status (Order Only)
  */
 router.post("/webhook", async (req, res) => {
   try {
     const webhookData = req.body;
     console.log("📌 Xendit Webhook Event Received:", webhookData);
 
-    // ✅ Secure Webhook Verification
+    // 🔐 Validate callback token
     const receivedToken = req.headers["x-callback-token"];
     if (!receivedToken || receivedToken !== XENDIT_CALLBACK_TOKEN) {
       console.error("❌ Invalid Xendit Callback Token");
       return res.status(401).json({ error: "Unauthorized webhook request" });
     }
 
-    // ✅ Validate webhook structure
-    if (!webhookData?.data?.status || !webhookData?.data?.id) {
-      console.error("❌ Invalid webhook structure.");
+    const { data } = webhookData;
+    if (!data?.status || !data?.id || !data?.reference_id) {
+      console.error("❌ Missing required webhook fields.");
       return res.status(400).json({ error: "Invalid webhook payload." });
     }
 
-    // ✅ Only process successful payments
-    if (webhookData.data.status !== "SUCCEEDED") {
-      console.log("ℹ️ Payment is not completed. Ignoring.");
+    // ✅ Process only successful payments
+    if (data.status !== "SUCCEEDED") {
+      console.log("ℹ️ Ignoring non-successful payment.");
       return res.status(200).send("Ignored");
     }
 
-    const chargeId = webhookData.data.id;
-    const referenceId = webhookData.data.reference_id; // Expected format: `ewallet-ORDERID-USERID`
-    const amount = webhookData.data.charge_amount;
+    const chargeId = data.id;
+    const referenceId = data.reference_id; // e.g., preorder-lkfXMFwvPPKLm6gAk9Ug-iNU0TcuMddggrxe2BKS2TECyVOX2
+    const parts = referenceId.split("-");
 
-    // ✅ Extract userId and orderId from reference_id
-    const referenceParts = referenceId?.split("-");
-    if (!referenceParts || referenceParts.length < 3) {
-      console.error("❌ Invalid reference ID format:", referenceId);
-      return res.status(400).json({ error: "Invalid reference ID format." });
+    if (parts.length < 3 || !referenceId.startsWith("preorder-")) {
+      console.error("❌ Invalid reference_id format:", referenceId);
+      return res.status(400).json({ error: "Invalid reference_id format" });
     }
 
-    const orderId = referenceParts[1];
-    const userId = referenceParts[2];
+    const orderId = parts[1];
 
-    // ✅ Fetch User Document
-    const userRef = admin.firestore().collection("users").doc(userId);
-    const userSnapshot = await userRef.get();
+    const orderRef = admin.firestore().collection("orders").doc(orderId);
+    const orderSnap = await orderRef.get();
 
-    if (!userSnapshot.exists) {
-      console.error("❌ User not found in Firestore:", userId);
-      return res.status(404).json({ error: "User not found." });
+    if (!orderSnap.exists) {
+      console.error("❌ Order not found:", orderId);
+      return res.status(404).json({ error: "Order not found." });
     }
 
-    const userData = userSnapshot.data();
-    if (!userData) {
-      console.error("❌ User data is missing.");
-      return res.status(500).json({ error: "User data is missing." });
+    const orderData = orderSnap.data();
+    if (!orderData) {
+      console.error("❌ Order data is missing.");
+      return res.status(500).json({ error: "Order data missing." });
     }
 
-    // ✅ Fetch Wallet Document
-    const walletRef = admin.firestore().collection("wallets").doc(userId);
-    const walletSnapshot = await walletRef.get();
-
-    if (!walletSnapshot.exists) {
-      console.error("❌ Wallet not found for user:", userId);
-      return res.status(404).json({ error: "Wallet not found." });
-    }
-
-    const walletData = walletSnapshot.data();
-    const currentBalance = walletData?.balance ? parseFloat(decrypt(walletData.balance)) : 0;
-
-    // ✅ Deduct 20% Platform Fee
-    const platformFee = amount * 0.2;
-    const netAmount = amount - platformFee;
-    const newBalance = currentBalance + netAmount;
-
-    // ✅ Store Webhook Data in Firestore (for logging/debugging)
-    const webhookRef = admin.firestore().collection("xendit_webhooks").doc(chargeId);
-    await webhookRef.set({
-      chargeId,
-      userId,
-      orderId,
-      referenceId,
-      status: webhookData.data.status,
-      amount,
-      platformFee,
-      netAmount,
-      currency: webhookData.data.currency,
-      channelCode: webhookData.data.channel_code,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    // ✅ Firestore Transaction to Update Wallet Balance
-    await admin.firestore().runTransaction(async (transaction) => {
-      transaction.update(walletRef, {
-        balance: encrypt(newBalance.toString()),
+    // ✅ Update order status only
+    await admin.firestore().runTransaction(async (tx) => {
+      tx.update(orderRef, {
+        paymentStatus: "paid",
+        status: "pending",
+        paidAt: admin.firestore.FieldValue.serverTimestamp(),
+        xenditChargeId: chargeId,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      transaction.update(webhookRef, {
-        status: "completed",
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      transaction.update(admin.firestore().collection("orders").doc(orderId), {
-        status: "paid",
-        paymentMethod: webhookData.data.channel_code,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      tx.set(admin.firestore().collection("xendit_webhooks").doc(chargeId), {
+        chargeId,
+        referenceId,
+        amount: data.charge_amount,
+        currency: data.currency,
+        channelCode: data.channel_code,
+        status: data.status,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     });
 
-    console.log(`✅ Wallet updated for user ${userId}: +₱${netAmount} (after 20% fee)`);
-
-    // ✅ Send Real-Time Notifications
-    if (userData.fcmToken) {
-      await sendPushNotification(
-        userData.fcmToken,
-        "Payment Successful",
-        `Your payment of ₱${amount} has been received. Your new balance is ₱${newBalance}.`
-      );
-    }
-
-    await sendEmailNotification(
-      userData.email,
-      "Payment Successful",
-      `Hello ${userData.firstName},<br><br>Your payment of ₱${amount} has been received. Your new balance is ₱${newBalance}.<br><br>Thank you!`
-    );
-
-    return res.status(200).json({ message: "Payment processed successfully." });
-  } catch (error) {
-    console.error("❌ Error processing webhook:", error);
+    console.log(`✅ GCash payment recorded for order ${orderId}`);
+    return res.status(200).json({ message: "GCash payment recorded for order." });
+  } catch (err) {
+    console.error("❌ Webhook handler error:", err);
     return res.status(500).json({ error: "Webhook processing failed." });
   }
 });

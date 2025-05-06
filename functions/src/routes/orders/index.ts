@@ -13,6 +13,7 @@ import verifyDeliveryQr from "./verify-delivery-qr";
 import verifyReturnQr from "./verify-return-qr";
 import riderDeliverRoute from "./riderDeliver.route";
 import setCompletionTime from "./set-completion-time";
+import paymentStatus from "./paymentStatus";
 
 export default [
   getCustomerOrdersRoute,
@@ -30,4 +31,5 @@ export default [
   verifyReturnQr,
   riderDeliverRoute,
   setCompletionTime,
+  paymentStatus,
 ];

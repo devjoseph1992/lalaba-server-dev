@@ -7,7 +7,7 @@ const router = Router();
 
 /**
  * @route   POST /orders/:orderId/cancel
- * @desc    Cancel an order (merchant or customer) if not yet accepted
+ * @desc    Cancel an order (merchant or customer) if not yet accepted or expired payment
  * @access  Authenticated
  */
 router.post("/:orderId/cancel", verifyFirebaseToken, async (req: CustomRequest, res) => {
@@ -35,16 +35,28 @@ router.post("/:orderId/cancel", verifyFirebaseToken, async (req: CustomRequest, 
       return res.status(403).json({ error: "You are not authorized to cancel this order." });
     }
 
-    // ❌ Block cancellation if already accepted by merchant
+    // ❌ Block if already delivered or cancelled
+    if (["cancelled", "delivered"].includes(order.status)) {
+      return res.status(400).json({ error: `Order is already ${order.status}.` });
+    }
+
+    // ❌ Block cancellation if already accepted
     if (order.status === "accepted_by_merchant") {
       return res.status(400).json({
         error: "Cannot cancel an order that has already been accepted by the merchant.",
       });
     }
 
-    // ❌ Block if already delivered or cancelled
-    if (["cancelled", "delivered"].includes(order.status)) {
-      return res.status(400).json({ error: `Order is already ${order.status}.` });
+    // ✅ Additional check: if awaiting_payment, check if expired
+    if (order.status === "awaiting_payment") {
+      const expiresAt = order.expiresAt?.toDate?.();
+      const now = new Date();
+
+      if (expiresAt && now > expiresAt) {
+        return res.status(400).json({
+          error: "Payment window has already expired. Please wait for automatic cancellation.",
+        });
+      }
     }
 
     await orderRef.update({

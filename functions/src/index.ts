@@ -16,6 +16,8 @@ import orderRoutes from "./routes/orders";
 import businessesRoutes from "./routes/businesses";
 
 import CustomersBusinessRoutes from "./routes/customers";
+import PaymentsRoutes from "./routes/payments";
+import xenditWebhookRoutes from "./routes/xenditInvoiceWebhook";
 
 import dotenv from "dotenv";
 
@@ -36,6 +38,8 @@ app.use("/rider", riderRoutes);
 app.use("/orders", orderRoutes);
 app.use("/businesses", businessesRoutes);
 app.use("/customers", CustomersBusinessRoutes);
+app.use("/payments", PaymentsRoutes);
+app.use("/xenditWebhook", xenditWebhookRoutes);
 
 // ✅ Health Check Route (Fix for Cloud Run Healthcheck Failures)
 app.get("/", (req, res) => {

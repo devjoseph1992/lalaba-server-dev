@@ -3,14 +3,10 @@ import * as admin from "firebase-admin";
 import * as QRCode from "qrcode";
 import { verifyFirebaseToken } from "../../middleware/auth";
 import { CustomRequest } from "../../types/global";
+import { sendOrderStatusNotification } from "../../utils/sendOrderStatusNotification"; // <-- import this
 
 const router = Router();
 
-/**
- * @route   POST /orders/:orderId/accept-merchant
- * @desc    Merchant accepts an order + generates QR code for delivery
- * @access  Authenticated
- */
 router.post(
   "/:orderId/accept-merchant",
   verifyFirebaseToken,
@@ -44,7 +40,7 @@ router.post(
 
       const platformFee = parseFloat((estimatedPrice * 0.2).toFixed(2));
 
-      // ✅ Generate QR Code (encode orderId or any custom data)
+      // ✅ Generate QR Code
       const qrPayload = {
         orderId,
         type: "delivery_verify",
@@ -52,7 +48,7 @@ router.post(
 
       const qrCodeDataURL = await QRCode.toDataURL(JSON.stringify(qrPayload));
 
-      // ✅ Save QR code securely in subcollection
+      // ✅ Save QR Code securely
       const qrSecureRef = orderRef.collection("secure").doc("qr");
       await qrSecureRef.set({
         qrCode: qrCodeDataURL,
@@ -60,7 +56,7 @@ router.post(
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      // ✅ Update order status and flag (do not expose QR here)
+      // ✅ Update order status
       await orderRef.update({
         status: "accepted_by_merchant",
         merchantAcceptedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -70,8 +66,13 @@ router.post(
 
       console.log(`✅ Order accepted: ${orderId} by ${merchantId} (QR saved to secure/)`);
 
+      // 🔥 Send push notification to customer
+      if (order.customerId) {
+        await sendOrderStatusNotification(order.customerId, orderId, "accepted_by_merchant");
+      }
+
       return res.status(200).json({
-        message: "Order accepted and QR code generated.",
+        message: "Order accepted, QR code generated, and notification sent.",
         platformFee,
         qrCodeStoredIn: `orders/${orderId}/secure/qr`,
       });

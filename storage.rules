@@ -1,9 +1,14 @@
-// storage.rules
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if true; // Allow everything (for local dev only!)
+    // Only allow access to user's own files
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Optional: Allow read access to public assets (if needed)
+    match /public/{allPaths=**} {
+      allow read;
     }
   }
 }

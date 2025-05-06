@@ -2,6 +2,7 @@ import { Router, Response } from "express";
 import * as admin from "firebase-admin";
 import { verifyFirebaseToken } from "../../middleware/auth";
 import { CustomRequest } from "../../types/global";
+import { sendOrderStatusNotification } from "../../utils/sendOrderStatusNotification"; // <-- ✅ import here
 
 const router = Router();
 
@@ -55,6 +56,13 @@ router.post(
         completedAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+
+      console.log(`✅ Rider ${riderId} completed return delivery for order ${orderId}`);
+
+      // 🔥 Send notification to customer
+      if (order.customerId) {
+        await sendOrderStatusNotification(order.customerId, orderId, "completed");
+      }
 
       return res.status(200).json({
         message: "Order return completed successfully.",

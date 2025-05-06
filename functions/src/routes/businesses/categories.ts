@@ -1,5 +1,3 @@
-// functions/src/routes/categories.ts
-
 import { Router, Response } from "express";
 import * as admin from "firebase-admin";
 import { verifyFirebaseToken, isMerchant } from "../../middleware/auth";
@@ -7,7 +5,6 @@ import { CustomRequest } from "../../types/global";
 import { categorySchema } from "../../schema/categoryValidation";
 
 const router = Router();
-
 const DEFAULT_CATEGORIES = ["Detergent", "Fabric Conditioner"];
 
 /**
@@ -38,7 +35,7 @@ router.get("/", verifyFirebaseToken, isMerchant, async (req: CustomRequest, res:
 });
 
 /**
- * ✅ POST new category
+ * ✅ POST new category (with normalized uniqueness)
  */
 router.post("/", verifyFirebaseToken, isMerchant, async (req: CustomRequest, res: Response) => {
   try {
@@ -51,21 +48,24 @@ router.post("/", verifyFirebaseToken, isMerchant, async (req: CustomRequest, res
       });
     }
 
+    const nameLower = name.trim().toLowerCase();
+
     const existing = await admin
       .firestore()
       .collection("businesses")
       .doc(merchantId)
       .collection("categories")
-      .where("name", "==", name)
+      .where("nameLower", "==", nameLower)
       .limit(1)
       .get();
 
     if (!existing.empty) {
-      return res.status(400).json({ error: "❌ Category name must be unique." });
+      return res.status(400).json({ error: "❌ Category name must be unique (case-insensitive)." });
     }
 
     await admin.firestore().collection("businesses").doc(merchantId).collection("categories").add({
       name,
+      nameLower,
       icon,
       sortOrder,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -114,8 +114,11 @@ router.put(
         });
       }
 
+      const nameLower = name.trim().toLowerCase();
+
       await ref.update({
         name,
+        nameLower,
         icon,
         sortOrder,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
