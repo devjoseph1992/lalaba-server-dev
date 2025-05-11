@@ -26,7 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const admin = __importStar(require("firebase-admin"));
 const auth_1 = require("../../middleware/auth");
-const placeOrder_service_1 = require("../../services/placeOrder.service"); // ⬅️ imported modular logic
+const placeOrder_service_1 = require("../../services/placeOrder.service");
 const router = (0, express_1.Router)();
 router.post("/place", auth_1.verifyFirebaseToken, async (req, res) => {
     try {
@@ -41,7 +41,7 @@ router.post("/place", auth_1.verifyFirebaseToken, async (req, res) => {
         if (!userData || userData.role !== "customer") {
             return res.status(403).json({ error: "Only customers can place orders." });
         }
-        // ✅ Call service to handle full logic
+        // 🚀 Call order service
         const result = await (0, placeOrder_service_1.placeOrder)({
             userId,
             userData,

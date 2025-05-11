@@ -1,94 +1,71 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.savePaymentMethod = void 0;
-const firebase_admin_1 = require("firebase-admin");
+const paymentMethod_logic_1 = require("./paymentMethod.logic");
 const encryption_1 = require("../utils/encryption");
-const validators_1 = require("../utils/validators"); // Make sure this file contains the validation logic below
 const savePaymentMethod = async (req, res) => {
-    const { userId, gcashNumber, bank, creditCard, } = req.body;
-    if (!userId) {
-        return res.status(400).json({ error: "Missing userId" });
-    }
     try {
-        // ✅ Validate GCash number
-        let encryptedGcash = null;
-        if (gcashNumber) {
-            const cleaned = gcashNumber.replace(/\D/g, "");
-            if (!/^\d{11}$/.test(cleaned)) {
-                return res.status(400).json({
-                    error: "GCash number must be exactly 11 digits.",
-                });
-            }
-            encryptedGcash = (0, encryption_1.encrypt)(cleaned);
+        const { userId, gcashNumber, bank, creditCard, linkedAccountToken } = req.body;
+        if (!userId) {
+            return res.status(400).json({ error: "Missing userId" });
         }
-        // ✅ Validate and encrypt bank info
-        let encryptedBank = null;
+        const now = new Date();
+        // ✅ Save GCash (working as-is)
+        if (gcashNumber ||
+            (linkedAccountToken && !linkedAccountToken.channel_code?.startsWith("BA_"))) {
+            const gcashEntry = {
+                addedAt: now,
+                updatedAt: now,
+            };
+            if (gcashNumber) {
+                const cleaned = gcashNumber.replace(/\D/g, "");
+                if (!/^\d{11}$/.test(cleaned)) {
+                    return res.status(400).json({ error: "GCash number must be 11 digits." });
+                }
+                gcashEntry.mobile_number = cleaned;
+            }
+            if (linkedAccountToken) {
+                const { provider, linked_account_token_id, channel_code, status } = linkedAccountToken;
+                gcashEntry.tokenId = linked_account_token_id;
+                gcashEntry.provider = provider;
+                gcashEntry.channel_code = channel_code;
+                gcashEntry.status = status;
+                gcashEntry.linkedAt = now;
+            }
+            await (0, paymentMethod_logic_1.saveGcashPaymentMethod)(userId, gcashEntry);
+        }
+        // ✅ Save Bank (relaxed, no accountName/number required)
         if (bank) {
-            const { bankName, accountName, accountNumber } = bank;
-            if (!bankName || !accountName || !accountNumber) {
-                return res.status(400).json({
-                    error: "Bank info is incomplete. Required: bankName, accountName, accountNumber.",
-                });
+            const { tokenId, channelCode, status, accountEmail, accountMobileNumber, cardNumber, cardLastFour, cardExpiry, } = bank;
+            if (!tokenId || !channelCode || !status || !accountEmail || !accountMobileNumber) {
+                return res.status(400).json({ error: "Missing required bank fields." });
             }
-            if (!/^\d+$/.test(accountNumber)) {
-                return res.status(400).json({
-                    error: "Bank account number must be numeric.",
-                });
-            }
-            encryptedBank = {
-                bankName,
-                accountName,
-                accountNumber: (0, encryption_1.encrypt)(accountNumber),
+            const encryptedCardNumber = cardNumber ? (0, encryption_1.encrypt)(cardNumber) : null;
+            const bankEntry = {
+                tokenId,
+                channelCode,
+                status,
+                accountEmail,
+                accountMobileNumber,
+                cardNumber: encryptedCardNumber,
+                cardLastFour: cardLastFour || null,
+                cardExpiry: cardExpiry || null,
+                accountNumber: null,
+                accountName: null,
+                bankName: null,
+                linkedAt: now,
             };
+            await (0, paymentMethod_logic_1.saveBankPaymentMethod)(userId, bankEntry);
         }
-        // ✅ Validate and encrypt credit card
-        let encryptedCard = null;
+        // ✅ Save Credit Card
         if (creditCard) {
-            const { cardNumber, cardHolder, expiry, cvc } = creditCard;
-            if (!cardNumber || !cardHolder || !expiry || !cvc) {
-                return res.status(400).json({
-                    error: "Credit card info is incomplete. Required: cardNumber, cardHolder, expiry, cvc.",
-                });
-            }
-            if (!(0, validators_1.isValidCardNumber)(cardNumber)) {
-                return res.status(400).json({ error: "Invalid credit card number." });
-            }
-            if (!(0, validators_1.isValidExpiry)(expiry)) {
-                return res.status(400).json({
-                    error: "Invalid expiry format. Use MM/YY or MM/YYYY, and must be a future date.",
-                });
-            }
-            if (!(0, validators_1.isValidCVC)(cvc)) {
-                return res.status(400).json({
-                    error: "Invalid CVC. Must be 3 or 4 digits.",
-                });
-            }
-            encryptedCard = {
-                cardNumber: (0, encryption_1.encrypt)(cardNumber),
-                cardHolder,
-                expiry: (0, encryption_1.encrypt)(expiry),
-                cvc: (0, encryption_1.encrypt)(cvc),
-            };
+            await (0, paymentMethod_logic_1.saveCreditCardPaymentMethod)(userId, creditCard);
         }
-        // ✅ Save to Firestore
-        const docRef = await (0, firebase_admin_1.firestore)().collection("payment_methods").add({
-            userId,
-            gcashNumber: encryptedGcash,
-            bank: encryptedBank,
-            creditCard: encryptedCard,
-            createdAt: firebase_admin_1.firestore.FieldValue.serverTimestamp(),
-        });
-        return res.status(201).json({
-            message: "Payment method saved successfully",
-            id: docRef.id,
-        });
+        return res.status(200).json({ message: "Payment method saved successfully." });
     }
     catch (error) {
-        console.error("❌ Error saving payment method:", error);
-        return res.status(500).json({
-            error: "Failed to save payment method",
-            details: error.message,
-        });
+        console.error("❌ Failed to save payment method:", error);
+        return res.status(500).json({ error: error.message });
     }
 };
 exports.savePaymentMethod = savePaymentMethod;

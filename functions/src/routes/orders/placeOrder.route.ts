@@ -2,7 +2,7 @@ import { Request, Response, Router } from "express";
 import * as admin from "firebase-admin";
 import { verifyFirebaseToken } from "../../middleware/auth";
 import { CustomRequest } from "../../types/global";
-import { placeOrder } from "../../services/placeOrder.service"; // ⬅️ imported modular logic
+import { placeOrder } from "../../services/placeOrder.service";
 
 const router = Router();
 
@@ -24,7 +24,7 @@ interface PlaceOrderRequestBody {
   extras?: ExtraInput[];
   estimatedKilo: number;
   orderType: "Delivery" | "Pick-up";
-  paymentMethod: "GCash" | "Cash";
+  paymentMethod: "GCash" | "Cash" | "Bank" | "Card";
   extraChoice?: "Add" | "Replace";
 }
 
@@ -58,7 +58,7 @@ router.post(
         return res.status(403).json({ error: "Only customers can place orders." });
       }
 
-      // ✅ Call service to handle full logic
+      // 🚀 Call order service
       const result = await placeOrder({
         userId,
         userData,

@@ -1,0 +1,17 @@
+# Compiled JavaScript files
+lib/**/*.js
+lib/**/*.js.map
+
+# TypeScript v1 declaration files
+typings/
+
+# Node.js dependency directory
+node_modules/
+*.local
+folderstructure
+.env
+.prettierrc
+/apps/lalabadashboard/
+/apps/dev-lalaba-merchant/
+/apps/.DS_Store
+/apps/.idea/

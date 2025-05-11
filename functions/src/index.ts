@@ -2,26 +2,17 @@ import * as functions from "firebase-functions/v1";
 import express from "express";
 import cors from "cors";
 import adminRoutes from "./routes/admin";
-
 import employeeRoutes from "./routes/employee";
-
 import webhookRoutes from "./routes/xenditWebhook";
-
 import walletRoutes from "./routes/wallet";
-
 import riderRoutes from "./routes/rider";
-
 import orderRoutes from "./routes/orders";
-
 import businessesRoutes from "./routes/businesses";
-
 import CustomersBusinessRoutes from "./routes/customers";
 import PaymentsRoutes from "./routes/payments";
 import xenditWebhookRoutes from "./routes/xenditInvoiceWebhook";
 
 import dotenv from "dotenv";
-
-// Load environment variables
 dotenv.config();
 
 // ✅ Initialize Express App
@@ -46,5 +37,8 @@ app.get("/", (req, res) => {
   res.status(200).send("API is running successfully!");
 });
 
-// ✅ Force Deployment as GCFv2
-export const api = functions.https.onRequest(app); // ✅ Forces GCFv2 deployment
+// ✅ Export Express HTTP API (GCF v2 enforced)
+export const api = functions.https.onRequest(app);
+
+// ✅ Export background Auth trigger
+export { onCustomerUserDocCreated } from "./triggers/onCustomerUserDocCreated"; // 💡 Make sure this path is correct

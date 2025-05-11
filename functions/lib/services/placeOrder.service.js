@@ -25,17 +25,16 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.placeOrder = void 0;
 const admin = __importStar(require("firebase-admin"));
-const encryption_1 = require("../utils/encryption");
-const gcashPreorder_1 = require("../utils/gcashPreorder");
-const createBankOrCardPreorderPayment_1 = require("../utils/createBankOrCardPreorderPayment"); // ✅ import added
+const createLinkedGcashPayment_1 = require("../utils/createLinkedGcashPayment");
+const createBankOrCardPreorderPayment_1 = require("../utils/createBankOrCardPreorderPayment");
 const calculateDistance_1 = require("../utils/calculateDistance");
 const getMerchantDetails_service_1 = require("./getMerchantDetails.service");
 const parseExtras_service_1 = require("./parseExtras.service");
 async function placeOrder(input) {
     const { userId, userData, merchantId, serviceId, customerLocation, customerAddress, extras = [], estimatedKilo, orderType, paymentMethod, extraChoice, } = input;
     console.log(`📦 Starting order for user: ${userId}, payment: ${paymentMethod}`);
+    const customerName = userData.name || "Unnamed Customer"; // ✅ Explicit customerName fallback
     const merchantDetails = await (0, getMerchantDetails_service_1.getMerchantDetails)(merchantId);
-    console.log(`🏪 Merchant: ${merchantDetails.businessName}`);
     const serviceSnap = await admin
         .firestore()
         .collection("businesses")
@@ -43,9 +42,8 @@ async function placeOrder(input) {
         .collection("services")
         .doc(serviceId)
         .get();
-    if (!serviceSnap.exists) {
+    if (!serviceSnap.exists)
         throw new Error("Service not found.");
-    }
     const serviceData = serviceSnap.data();
     const pricePerKilo = typeof serviceData.price === "string" ? parseFloat(serviceData.price) : serviceData.price;
     const baseWashPrice = pricePerKilo * estimatedKilo;
@@ -60,7 +58,7 @@ async function placeOrder(input) {
     const orderBase = {
         orderId: orderRef.id,
         customerId: userId,
-        customerName: userData.name || "Unnamed Customer",
+        customerName,
         merchantId,
         merchantLocation: merchantDetails.coordinates,
         merchantAddress: merchantDetails.address,
@@ -84,34 +82,40 @@ async function placeOrder(input) {
     };
     const referenceId = `preorder-${orderRef.id}-${userId}`;
     const expiresAt = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 15 * 60 * 1000));
+    // ✅ GCash (tokenized)
     if (paymentMethod === "GCash") {
-        const pmSnap = await admin
+        const gcashSnap = await admin
             .firestore()
             .collection("payment_methods")
-            .where("userId", "==", userId)
+            .doc(userId)
+            .collection("gcash")
+            .where("status", "==", "ACTIVE")
+            .orderBy("linkedAt", "desc")
             .limit(1)
             .get();
-        if (pmSnap.empty)
-            throw new Error("No GCash number saved.");
-        const gcashData = pmSnap.docs[0].data();
-        if (!gcashData.gcashNumber)
-            throw new Error("GCash number is required.");
-        const customerPhone = (0, encryption_1.decrypt)(gcashData.gcashNumber);
-        const { checkoutUrl } = await (0, gcashPreorder_1.createGcashPreorderPayment)({
+        if (gcashSnap.empty)
+            throw new Error("No linked GCash payment method found.");
+        const gcashData = gcashSnap.docs[0].data();
+        if (!gcashData.tokenId)
+            throw new Error("Missing GCash tokenId.");
+        const { checkoutUrl, status } = await (0, createLinkedGcashPayment_1.createLinkedGcashPayment)({
             amount: totalAmount,
             customerId: userId,
-            customerPhone,
+            tokenId: gcashData.tokenId,
             referenceId,
         });
+        const paymentStatus = status === "SUCCEEDED" ? "paid" : "pending";
+        const orderStatus = status === "SUCCEEDED" ? "pending" : "awaiting_payment";
         await orderRef.set({
             ...orderBase,
-            status: "awaiting_payment",
-            paymentStatus: "pending",
+            status: orderStatus,
+            paymentStatus,
             referenceId,
             expiresAt,
+            paidAt: status === "SUCCEEDED" ? admin.firestore.FieldValue.serverTimestamp() : null,
         });
         return {
-            message: "GCash checkout created successfully",
+            message: `GCash tokenized payment ${status.toLowerCase()}`,
             checkoutUrl,
             referenceId,
             orderId: orderRef.id,
@@ -121,6 +125,7 @@ async function placeOrder(input) {
             merchantDetails,
         };
     }
+    // 💳 Bank / Card
     if (paymentMethod === "Bank" || paymentMethod === "Card") {
         if (!userData.email)
             throw new Error("Customer email is required for Bank/Card.");
@@ -148,13 +153,12 @@ async function placeOrder(input) {
             merchantDetails,
         };
     }
-    // Fallback: Cash
-    const cashOrder = {
+    // 💵 Cash
+    await orderRef.set({
         ...orderBase,
         status: "pending",
         paymentStatus: "unpaid",
-    };
-    await orderRef.set(cashOrder);
+    });
     console.log(`📤 Cash order placed: ${orderRef.id}`);
     return {
         message: "Order placed successfully (Cash)",

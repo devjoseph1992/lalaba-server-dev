@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.api = void 0;
+exports.onCustomerUserDocCreated = exports.api = void 0;
 const functions = __importStar(require("firebase-functions/v1"));
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
@@ -41,7 +41,6 @@ const customers_1 = __importDefault(require("./routes/customers"));
 const payments_1 = __importDefault(require("./routes/payments"));
 const xenditInvoiceWebhook_1 = __importDefault(require("./routes/xenditInvoiceWebhook"));
 const dotenv_1 = __importDefault(require("dotenv"));
-// Load environment variables
 dotenv_1.default.config();
 // ✅ Initialize Express App
 const app = (0, express_1.default)();
@@ -62,6 +61,9 @@ app.use("/xenditWebhook", xenditInvoiceWebhook_1.default);
 app.get("/", (req, res) => {
     res.status(200).send("API is running successfully!");
 });
-// ✅ Force Deployment as GCFv2
-exports.api = functions.https.onRequest(app); // ✅ Forces GCFv2 deployment
+// ✅ Export Express HTTP API (GCF v2 enforced)
+exports.api = functions.https.onRequest(app);
+// ✅ Export background Auth trigger
+var onCustomerUserDocCreated_1 = require("./triggers/onCustomerUserDocCreated"); // 💡 Make sure this path is correct
+Object.defineProperty(exports, "onCustomerUserDocCreated", { enumerable: true, get: function () { return onCustomerUserDocCreated_1.onCustomerUserDocCreated; } });
 //# sourceMappingURL=index.js.map

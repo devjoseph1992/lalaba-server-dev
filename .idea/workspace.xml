@@ -5,82 +5,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="78c7a981-acfb-45d6-8eb2-f53bd121f3e6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/functions/firestore-debug.log" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/controllers/gcashPayment.controller.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/controllers/gcashPreorder.controller.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/controllers/paymentMethod.controller.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/helpers/addUser.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/admin/addUser.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/admin/deleteUser.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/admin/getEmployees.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/admin/getMerchants.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/admin/getRiders.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/admin/getUsers.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/admin/index.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/admin/updateUser.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/employee/addMerchant.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/employee/addRider.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/employee/deleteMerchant.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/employee/deleteRider.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/employee/getEmployees.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/employee/getMerchants.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/employee/getRiders.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/employee/index.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/employee/updateMerchant.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/employee/updateRider.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/book-return-qr.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/complete-return.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/getMerchantOrders.route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/getOrderById.route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/getRiderOrder.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/payTopup.route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/paymentStatus.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/rider-status.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/riderDeliver.route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/set-completion-time.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/verify-delivery-qr.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/orders/verify-return-qr.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/payments/index.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/payments/paymentMethod.routes.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/routes/xenditInvoiceWebhook.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/services/getMerchantDetails.service.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/services/parseExtras.service.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/services/placeOrder.service.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/utils/createBankOrCardPreorderPayment.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/utils/gcashPreorder.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/utils/sendOrderStatusNotification.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/utils/validators.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/utils/xenditRefund.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/utils/xenditSignature.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/webhook/handleBank.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/webhook/handleCard.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/webhook/handleGcash.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/functions/src/webhook/handleOverTheCounter.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/controllers/paymentMethod.logic.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/routes/payments/gcash.routes.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/routes/payments/linkCardAndBank.route.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/services/createBankLinkingSession.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/services/createGcashLinkingSession.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/triggers/onCustomerUserDocCreated.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/utils/createLinkedGcashPayment.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/firestore.rules" beforeDir="false" afterPath="$PROJECT_DIR$/firestore.rules" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/firestore.indexes.json" beforeDir="false" afterPath="$PROJECT_DIR$/functions/firestore.indexes.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/functions/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/functions/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/functions/src/controllers/paymentMethod.controller.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/admin.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/business.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/businesses/categories.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/businesses/categories.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/businesses/products.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/businesses/products.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/businesses/setup.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/businesses/setup.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/employee.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/acceptMerchant.route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/orders/acceptMerchant.route.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/acceptRider.route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/orders/acceptRider.route.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/book-rider.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/cancelOrder.route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/orders/cancelOrder.route.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/completeOrder.route.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/getCustomerOrders.route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/orders/getCustomerOrders.route.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/orders/index.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/placeOrder.route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/orders/placeOrder.route.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/routes/orders/updateWeight.route.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/functions/src/routes/payments/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/payments/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/functions/src/routes/payments/paymentMethod.routes.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/functions/src/routes/xenditWebhook.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/routes/xenditWebhook.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/schema/businessValidation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/schema/businessValidation.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions/src/utils/encryption.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/utils/encryption.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage.rules" beforeDir="false" afterPath="$PROJECT_DIR$/storage.rules" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/functions/src/services/placeOrder.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/functions/src/services/placeOrder.service.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -144,6 +83,8 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/functions/src/services" />
+      <recent name="$PROJECT_DIR$/functions/src/triggers" />
       <recent name="$PROJECT_DIR$/functions/src/utils" />
       <recent name="$PROJECT_DIR$/functions/src/controllers" />
     </key>
@@ -206,7 +147,7 @@
       <workItem from="1745471252135" duration="12564000" />
       <workItem from="1745561185422" duration="5084000" />
       <workItem from="1745597392686" duration="8471000" />
-      <workItem from="1745802136916" duration="74368000" />
+      <workItem from="1745802136916" duration="183976000" />
     </task>
     <servers />
   </component>
