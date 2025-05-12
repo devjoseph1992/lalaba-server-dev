@@ -1,6 +1,6 @@
 import { Router } from "express";
 import gcashRoutes from "./gcash.routes";
-import linkCardAndBankRoute from "./linkCardAndBank.route"; // ✅ Add this
+import linkCardAndBankRoute from "./linkCardAndBank.route";
 
 const router = Router();
 

@@ -9,6 +9,7 @@
       <change afterPath="$PROJECT_DIR$/functions/src/routes/payments/gcash.routes.ts" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/functions/src/routes/payments/linkCardAndBank.route.ts" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/functions/src/services/createBankLinkingSession.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/functions/src/services/createCreditCardLinkingSession.ts" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/functions/src/services/createGcashLinkingSession.ts" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/functions/src/triggers/onCustomerUserDocCreated.ts" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/functions/src/utils/createLinkedGcashPayment.ts" afterDir="false" />
@@ -147,7 +148,8 @@
       <workItem from="1745471252135" duration="12564000" />
       <workItem from="1745561185422" duration="5084000" />
       <workItem from="1745597392686" duration="8471000" />
-      <workItem from="1745802136916" duration="183976000" />
+      <workItem from="1745802136916" duration="184244000" />
+      <workItem from="1746963363479" duration="14014000" />
     </task>
     <servers />
   </component>
