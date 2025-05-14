@@ -4,6 +4,14 @@
       "collectionGroup": "orders",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "customerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "merchantId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
@@ -13,7 +21,8 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "merchantId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
@@ -25,23 +34,33 @@
       ]
     },
     {
-      "collectionGroup": "orders",
+      "collectionGroup": "gcash",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "customerId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "linkedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bank",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "linkedAt", "order": "DESCENDING" }
       ]
     }
   ],
   "fieldOverrides": [
     {
       "collectionGroup": "users",
-      "fieldPath": "role",
+      "fieldPath": "createdAt",
+      "ttl": false,
       "indexes": []
     },
     {
       "collectionGroup": "users",
-      "fieldPath": "createdAt",
+      "fieldPath": "role",
+      "ttl": false,
       "indexes": []
     }
   ]

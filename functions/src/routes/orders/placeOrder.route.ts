@@ -24,7 +24,7 @@ interface PlaceOrderRequestBody {
   extras?: ExtraInput[];
   estimatedKilo: number;
   orderType: "Delivery" | "Pick-up";
-  paymentMethod: "GCash" | "Cash" | "Bank" | "Card";
+  paymentMethod: "GCash" | "Cash" | "Bank";
   extraChoice?: "Add" | "Replace";
 }
 

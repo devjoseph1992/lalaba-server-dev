@@ -26,12 +26,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const admin = __importStar(require("firebase-admin"));
 const auth_1 = require("../../middleware/auth");
+const refundGcashPayment_1 = require("../../utils/refundGcashPayment");
+const refundBankPayment_1 = require("../../utils/refundBankPayment");
 const router = (0, express_1.Router)();
-/**
- * @route   POST /orders/:orderId/cancel
- * @desc    Cancel an order (merchant or customer) if not yet accepted or expired payment
- * @access  Authenticated
- */
 router.post("/:orderId/cancel", auth_1.verifyFirebaseToken, async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -50,33 +47,63 @@ router.post("/:orderId/cancel", auth_1.verifyFirebaseToken, async (req, res) => 
         if (!isMerchant && !isCustomer) {
             return res.status(403).json({ error: "You are not authorized to cancel this order." });
         }
-        // ❌ Block if already delivered or cancelled
         if (["cancelled", "delivered"].includes(order.status)) {
             return res.status(400).json({ error: `Order is already ${order.status}.` });
         }
-        // ❌ Block cancellation if already accepted
         if (order.status === "accepted_by_merchant") {
             return res.status(400).json({
                 error: "Cannot cancel an order that has already been accepted by the merchant.",
             });
         }
-        // ✅ Additional check: if awaiting_payment, check if expired
         if (order.status === "awaiting_payment") {
             const expiresAt = order.expiresAt?.toDate?.();
-            const now = new Date();
-            if (expiresAt && now > expiresAt) {
+            if (expiresAt && new Date() > expiresAt) {
                 return res.status(400).json({
                     error: "Payment window has already expired. Please wait for automatic cancellation.",
                 });
             }
         }
+        const chargeId = order.xenditChargeId;
+        const amount = order.price;
+        // ✅ Use Xendit-approved reason
+        const xenditReason = "REQUESTED_BY_CUSTOMER";
+        if (order.paymentStatus === "paid") {
+            if (!chargeId || !amount) {
+                return res.status(500).json({ error: "Missing chargeId or price for refund." });
+            }
+            try {
+                if (order.paymentMethod === "GCash") {
+                    await (0, refundGcashPayment_1.refundGcashPayment)({
+                        chargeId,
+                        amount,
+                        reason: xenditReason,
+                    });
+                }
+                if (order.paymentMethod === "Bank") {
+                    await (0, refundBankPayment_1.refundBankPayment)({
+                        chargeId,
+                        amount,
+                        reason: xenditReason,
+                    });
+                }
+            }
+            catch (refundError) {
+                const rawError = refundError?.response?.data || refundError?.message || "Unknown refund error";
+                console.error("❌ Refund failed:", rawError);
+                return res.status(500).json({
+                    error: `${order.paymentMethod} refund failed. Please contact support.`,
+                    details: rawError,
+                });
+            }
+        }
+        // ✅ Final cancellation update
         await orderRef.update({
             status: "cancelled",
             cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
             cancelledBy: isMerchant ? "merchant" : "customer",
         });
         return res.status(200).json({
-            message: `Order cancelled by ${isMerchant ? "merchant" : "customer"}.`,
+            message: `Order cancelled by ${isMerchant ? "merchant" : "customer"}. Refund issued if applicable.`,
         });
     }
     catch (err) {

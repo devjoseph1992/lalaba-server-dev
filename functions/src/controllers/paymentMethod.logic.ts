@@ -1,10 +1,9 @@
 import { firestore } from "firebase-admin";
 import { encrypt } from "../utils/encryption";
-import { isValidCardNumber, isValidExpiry, isValidCVC } from "../utils/validators";
 
 // ✅ GCash entry type
 export type GcashEntry = {
-  mobile_number?: string;
+  mobile_number?: string | null;
   addedAt?: Date;
   tokenId?: string;
   provider?: string;
@@ -14,25 +13,28 @@ export type GcashEntry = {
   updatedAt?: Date;
 };
 
+// 🔧 Remove null/undefined before saving to Firestore
+function cleanFirestoreData<T extends object>(data: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(data).filter(([_, v]) => v !== undefined && v !== null)
+  ) as Partial<T>;
+}
+
 // ✅ Save GCash to subcollection
 export const saveGcashPaymentMethod = async (userId: string, gcash: GcashEntry) => {
   const db = firestore();
   const now = new Date();
 
   const gcashRef = db.collection("payment_methods").doc(userId).collection("gcash");
+  const gcashId = gcash.tokenId || gcashRef.doc().id;
 
-  const gcashId =
-    gcash.tokenId ||
-    (gcash.mobile_number ? gcash.mobile_number.replace(/\D/g, "") : gcashRef.doc().id);
+  const cleanData = cleanFirestoreData({
+    ...gcash,
+    addedAt: gcash.addedAt || now,
+    updatedAt: now,
+  });
 
-  await gcashRef.doc(gcashId).set(
-    {
-      ...gcash,
-      updatedAt: now,
-      addedAt: gcash.addedAt || now,
-    },
-    { merge: true }
-  );
+  await gcashRef.doc(gcashId).set(cleanData, { merge: true });
 };
 
 // ✅ Save Bank to subcollection
@@ -44,7 +46,7 @@ export const saveBankPaymentMethod = async (
     status: string;
     accountEmail: string;
     accountMobileNumber: string;
-    cardNumber?: string; // optional for cases where full card is not provided
+    cardNumber?: string;
     cardLastFour: string;
     cardExpiry?: string;
     linkedAt?: Date;
@@ -53,98 +55,34 @@ export const saveBankPaymentMethod = async (
   const db = firestore();
   const now = new Date();
 
-  const {
-    tokenId,
-    channelCode,
-    status,
-    accountEmail,
-    accountMobileNumber,
-    cardNumber,
-    cardLastFour,
-    cardExpiry,
-    linkedAt,
-  } = bank;
-
-  const encryptedCardNumber = cardNumber ? encrypt(cardNumber) : null;
+  const encryptedCardNumber = bank.cardNumber ? encrypt(bank.cardNumber) : undefined;
 
   const bankRef = db.collection("payment_methods").doc(userId).collection("bank");
 
-  await bankRef.doc(tokenId).set(
-    {
-      tokenId,
-      channelCode,
-      status,
-      accountEmail,
-      accountMobileNumber,
-      cardNumber: encryptedCardNumber,
-      cardLastFour,
-      cardExpiry: cardExpiry || null,
-      linkedAt: linkedAt || now,
-      addedAt: now,
-      updatedAt: now,
-    },
-    { merge: true }
-  );
+  const cleanData = cleanFirestoreData({
+    tokenId: bank.tokenId,
+    channelCode: bank.channelCode,
+    status: bank.status,
+    accountEmail: bank.accountEmail,
+    accountMobileNumber: bank.accountMobileNumber,
+    cardNumber: encryptedCardNumber,
+    cardLastFour: bank.cardLastFour,
+    cardExpiry: bank.cardExpiry || null,
+    linkedAt: bank.linkedAt || now,
+    addedAt: now,
+    updatedAt: now,
+  });
 
-  console.log(`✅ Saved bank linking metadata for user ${userId}, token ${tokenId}`);
+  await bankRef.doc(bank.tokenId).set(cleanData, { merge: true });
+
+  console.log(`✅ Saved bank linking metadata for user ${userId}, token ${bank.tokenId}`);
 };
 
-// ✅ Save Credit Card to subcollection
-export const saveCreditCardPaymentMethod = async (
-  userId: string,
-  creditCard: {
-    cardNumber: string;
-    cardHolder: string;
-    expiry: string;
-    cvc: string;
-  }
-) => {
-  const db = firestore();
-  const now = new Date();
-
-  const { cardNumber, cardHolder, expiry, cvc } = creditCard;
-
-  if (!cardNumber || !cardHolder || !expiry || !cvc) {
-    throw new Error("Incomplete credit card info.");
-  }
-
-  if (!isValidCardNumber(cardNumber)) {
-    throw new Error("Invalid credit card number.");
-  }
-
-  if (!isValidExpiry(expiry)) {
-    throw new Error("Invalid expiry format.");
-  }
-
-  if (!isValidCVC(cvc)) {
-    throw new Error("Invalid CVC.");
-  }
-
-  const encryptedCardNumber = encrypt(cardNumber);
-  const encryptedExpiry = encrypt(expiry);
-  const encryptedCvc = encrypt(cvc);
-
-  const creditRef = db.collection("payment_methods").doc(userId).collection("creditcard");
-
-  await creditRef.doc(encryptedCardNumber).set(
-    {
-      cardNumber: encryptedCardNumber,
-      cardHolder,
-      expiry: encryptedExpiry,
-      cvc: encryptedCvc,
-      addedAt: now,
-      updatedAt: now,
-    },
-    { merge: true }
-  );
-};
-
-// ✅ Unified entry point for saving
+// ✅ Unified save function
 export const savePaymentMethodForUser = async ({
   userId,
   gcash,
   bank,
-  creditCard,
 }: {
   userId: string;
   gcash?: GcashEntry;
@@ -154,36 +92,18 @@ export const savePaymentMethodForUser = async ({
     status: string;
     accountEmail: string;
     accountMobileNumber: string;
-    cardNumber?: string; // Marked optional for flexibility
+    cardNumber?: string;
     cardLastFour: string;
     cardExpiry?: string;
     linkedAt?: Date;
   };
-  creditCard?: {
-    cardNumber: string;
-    cardHolder: string;
-    expiry: string;
-    cvc: string;
-  };
 }) => {
-  if (gcash) await saveGcashPaymentMethod(userId, gcash);
-
-  if (bank) {
-    await saveBankPaymentMethod(userId, {
-      tokenId: bank.tokenId,
-      channelCode: bank.channelCode,
-      status: bank.status,
-      accountEmail: bank.accountEmail,
-      accountMobileNumber: bank.accountMobileNumber,
-      cardNumber: bank.cardNumber, // ✅ Passed here now
-      cardLastFour: bank.cardLastFour || "0000",
-      cardExpiry: bank.cardExpiry,
-      linkedAt: bank.linkedAt,
-    });
+  if (gcash) {
+    await saveGcashPaymentMethod(userId, gcash);
   }
 
-  if (creditCard) {
-    await saveCreditCardPaymentMethod(userId, creditCard);
+  if (bank) {
+    await saveBankPaymentMethod(userId, bank);
   }
 
   await firestore().collection("payment_methods").doc(userId).set(

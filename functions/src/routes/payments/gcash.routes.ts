@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as admin from "firebase-admin";
 import { createGcashLinkingSession } from "../../services/createGcashLinkingSession";
-import { saveGcashPaymentMethod } from "../../controllers/paymentMethod.logic"; // ✅ import this
+import { saveGcashPaymentMethod } from "../../controllers/paymentMethod.logic";
 
 const router = Router();
 
@@ -20,6 +20,8 @@ router.post("/link", async (req, res) => {
       return res.status(400).json({ error: "User must exist and have a Xendit customer ID" });
     }
 
+    // ✅ Optional: try to load saved mobile number
+    let phone: string | undefined;
     const gcashSnap = await admin
       .firestore()
       .collection("payment_methods")
@@ -29,27 +31,21 @@ router.post("/link", async (req, res) => {
       .limit(1)
       .get();
 
-    if (gcashSnap.empty) {
-      return res.status(400).json({ error: "No GCash number found for this user." });
+    if (!gcashSnap.empty) {
+      const latestGcash = gcashSnap.docs[0].data();
+      const mobile = latestGcash?.mobile_number;
+      phone = mobile?.startsWith("+63") ? mobile : mobile?.replace(/^0/, "+63");
     }
 
-    const latestGcash = gcashSnap.docs[0].data();
-    const phone = latestGcash.mobile_number;
-
-    if (!phone) {
-      return res.status(400).json({ error: "Missing mobile number in latest GCash entry." });
-    }
-
-    const formattedPhone = phone.startsWith("+63") ? phone : phone.replace(/^0/, "+63");
-
+    // ✅ Create GCash linking session
     const result = await createGcashLinkingSession({
       customerId: user.xenditCustomerId,
-      customerPhone: formattedPhone,
+      customerPhone: phone, // optional
       successRedirectUrl: `myapp://payment/gcash_success?uid=${userId}`,
       failureRedirectUrl: `myapp://payment/gcash_failed`,
     });
 
-    // ✅ Save GCash linking metadata in Firestore
+    // ✅ Save token metadata in Firestore
     await saveGcashPaymentMethod(userId, {
       tokenId: result.tokenId,
       provider: "GCASH",
@@ -57,7 +53,7 @@ router.post("/link", async (req, res) => {
       status: result.status,
       linkedAt: new Date(),
       updatedAt: new Date(),
-      mobile_number: phone,
+      mobile_number: phone ?? null,
     });
 
     return res.status(200).json({

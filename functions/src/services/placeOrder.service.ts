@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
 import { createLinkedGcashPayment } from "../utils/createLinkedGcashPayment";
-import { createBankOrCardPreorderPayment } from "../utils/createBankOrCardPreorderPayment";
+import { createLinkedBankPayment } from "../utils/createLinkedBankPayment"; // ✅ updated import
 import { calculateDistance } from "../utils/calculateDistance";
 import { getMerchantDetails, MerchantDetails } from "./getMerchantDetails.service";
 import { parseExtras } from "./parseExtras.service";
@@ -31,7 +31,7 @@ interface PlaceOrderInput {
   extras?: ExtraInput[];
   estimatedKilo: number;
   orderType: "Delivery" | "Pick-up";
-  paymentMethod: "GCash" | "Cash" | "Bank" | "Card";
+  paymentMethod: "GCash" | "Cash" | "Bank";
   extraChoice?: "Add" | "Replace";
 }
 
@@ -52,9 +52,10 @@ export async function placeOrder(input: PlaceOrderInput) {
 
   console.log(`📦 Starting order for user: ${userId}, payment: ${paymentMethod}`);
 
-  const customerName = userData.name || "Unnamed Customer"; // ✅ Explicit customerName fallback
+  const customerName = userData.name || "Unnamed Customer";
 
   const merchantDetails: MerchantDetails = await getMerchantDetails(merchantId);
+
   const serviceSnap = await admin
     .firestore()
     .collection("businesses")
@@ -63,13 +64,15 @@ export async function placeOrder(input: PlaceOrderInput) {
     .doc(serviceId)
     .get();
 
-  if (!serviceSnap.exists) throw new Error("Service not found.");
-  const serviceData = serviceSnap.data() as ServiceData;
+  if (!serviceSnap.exists) {
+    throw new Error("Service not found.");
+  }
 
+  const serviceData = serviceSnap.data() as ServiceData;
   const pricePerKilo =
     typeof serviceData.price === "string" ? parseFloat(serviceData.price) : serviceData.price;
-  const baseWashPrice = pricePerKilo * estimatedKilo;
 
+  const baseWashPrice = pricePerKilo * estimatedKilo;
   const { extraProducts, extrasTotal } = await parseExtras(merchantId, extras, estimatedKilo);
 
   const distance = calculateDistance(
@@ -90,7 +93,7 @@ export async function placeOrder(input: PlaceOrderInput) {
   const orderBase = {
     orderId: orderRef.id,
     customerId: userId,
-    customerName, // ✅ explicitly included
+    customerName,
     merchantId,
     merchantLocation: merchantDetails.coordinates,
     merchantAddress: merchantDetails.address,
@@ -116,7 +119,7 @@ export async function placeOrder(input: PlaceOrderInput) {
   const referenceId = `preorder-${orderRef.id}-${userId}`;
   const expiresAt = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 15 * 60 * 1000));
 
-  // ✅ GCash (tokenized)
+  // ✅ GCash Tokenized Flow
   if (paymentMethod === "GCash") {
     const gcashSnap = await admin
       .firestore()
@@ -132,27 +135,27 @@ export async function placeOrder(input: PlaceOrderInput) {
     const gcashData = gcashSnap.docs[0].data();
     if (!gcashData.tokenId) throw new Error("Missing GCash tokenId.");
 
-    const { checkoutUrl, status } = await createLinkedGcashPayment({
+    const { chargeId, checkoutUrl, status } = await createLinkedGcashPayment({
       amount: totalAmount,
       customerId: userId,
       tokenId: gcashData.tokenId,
       referenceId,
     });
 
-    const paymentStatus = status === "SUCCEEDED" ? "paid" : "pending";
-    const orderStatus = status === "SUCCEEDED" ? "pending" : "awaiting_payment";
+    const isPaid = status === "SUCCEEDED";
 
     await orderRef.set({
       ...orderBase,
-      status: orderStatus,
-      paymentStatus,
+      status: isPaid ? "pending" : "awaiting_payment",
+      paymentStatus: isPaid ? "paid" : "pending",
+      paidAt: isPaid ? admin.firestore.FieldValue.serverTimestamp() : null,
       referenceId,
       expiresAt,
-      paidAt: status === "SUCCEEDED" ? admin.firestore.FieldValue.serverTimestamp() : null,
+      xenditChargeId: chargeId,
     });
 
     return {
-      message: `GCash tokenized payment ${status.toLowerCase()}`,
+      message: `GCash payment ${status.toLowerCase()}`,
       checkoutUrl,
       referenceId,
       orderId: orderRef.id,
@@ -163,27 +166,49 @@ export async function placeOrder(input: PlaceOrderInput) {
     };
   }
 
-  // 💳 Bank / Card
-  if (paymentMethod === "Bank" || paymentMethod === "Card") {
-    if (!userData.email) throw new Error("Customer email is required for Bank/Card.");
+  // ✅ Linked Bank/Card Payment (Tokenized)
+  if (paymentMethod === "Bank") {
+    if (!userData.email) throw new Error("Customer email is required for Bank payment.");
 
-    const { checkoutUrl } = await createBankOrCardPreorderPayment({
+    const bankSnap = await admin
+      .firestore()
+      .collection("payment_methods")
+      .doc(userId)
+      .collection("bank")
+      .where("status", "in", ["ACTIVE", "SUCCESSFUL"])
+      .orderBy("linkedAt", "desc")
+      .limit(1)
+      .get();
+
+    if (bankSnap.empty) throw new Error("No linked Bank/Card payment method found.");
+    const bankData = bankSnap.docs[0].data();
+    if (!bankData.tokenId) throw new Error("Missing Bank tokenId.");
+
+    const {
+      status,
+      checkoutUrl,
+      referenceId: xenditRefId,
+    } = await createLinkedBankPayment({
       amount: totalAmount,
       customerId: userId,
-      customerEmail: userData.email,
+      tokenId: bankData.tokenId,
       referenceId,
     });
+
+    const isPaid = status === "SUCCEEDED";
 
     await orderRef.set({
       ...orderBase,
-      status: "awaiting_payment",
-      paymentStatus: "pending",
+      status: isPaid ? "pending" : "awaiting_payment",
+      paymentStatus: isPaid ? "paid" : "pending",
+      paidAt: isPaid ? admin.firestore.FieldValue.serverTimestamp() : null,
       referenceId,
       expiresAt,
+      xenditChargeId: xenditRefId,
     });
 
     return {
-      message: "Bank/Card checkout created successfully",
+      message: `Bank payment ${status.toLowerCase()}`,
       checkoutUrl,
       referenceId,
       orderId: orderRef.id,
@@ -194,7 +219,7 @@ export async function placeOrder(input: PlaceOrderInput) {
     };
   }
 
-  // 💵 Cash
+  // ✅ Cash fallback
   await orderRef.set({
     ...orderBase,
     status: "pending",

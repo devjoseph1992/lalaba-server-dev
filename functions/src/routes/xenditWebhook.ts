@@ -4,7 +4,6 @@ import * as dotenv from "dotenv";
 import { saveGcashPaymentMethod, saveBankPaymentMethod } from "../controllers/paymentMethod.logic";
 
 dotenv.config();
-
 const router = Router();
 const XENDIT_CALLBACK_TOKEN = process.env.XENDIT_CALLBACK_TOKEN ?? "";
 
@@ -19,9 +18,10 @@ router.post("/webhook", async (req, res) => {
       return res.status(401).json({ error: "Unauthorized webhook request" });
     }
 
-    const { event, data } = webhookData;
+    const event: string = webhookData.event;
+    const data: any = webhookData.data ?? webhookData;
 
-    // ✅ GCash linking activation
+    // ✅ GCash linking
     if (event === "payment_method.activated" && data?.status === "ACTIVE") {
       const customerId = data.customer_id;
       const tokenId = data.id;
@@ -35,7 +35,7 @@ router.post("/webhook", async (req, res) => {
 
       if (userQuery.empty) {
         console.warn(`❌ No user found with Xendit customerId: ${customerId}`);
-        return res.status(200).send("No matching user (test webhook logged)");
+        return res.status(200).send("No matching user (GCash linking logged)");
       }
 
       const userId = userQuery.docs[0].id;
@@ -65,92 +65,123 @@ router.post("/webhook", async (req, res) => {
         mobile_number: matchedMobile,
       });
 
-      console.log(`✅ GCash payment method activated and saved for user ${userId}`);
+      console.log(`✅ GCash payment method saved for user ${userId}`);
       return res.status(200).send("GCash payment method saved");
     }
 
-    // ✅ Bank linking - account selected
-    if (event === "linked_account_token.account_selected") {
+    // ✅ Bank linking
+    if (event.startsWith("linked_account_token.")) {
       const tokenId = data.id;
       const channelCode = data.channel_code;
       const customerId = data.customer_id;
-      const status = data.status;
-      const props = data.properties || {};
 
-      const userQuery = await admin
-        .firestore()
-        .collection("users")
-        .where("xenditCustomerId", "==", customerId)
-        .limit(1)
-        .get();
+      const props: Record<string, any> =
+        typeof data.properties === "object" && data.properties !== null ? data.properties : {};
 
-      if (userQuery.empty) {
-        console.warn(`❌ No user found with Xendit customerId: ${customerId}`);
-        return res.status(200).send("No matching user (test webhook logged)");
+      const status =
+        event === "linked_account_token.successful"
+          ? "SUCCESSFUL"
+          : data.status?.toUpperCase?.() || "UNKNOWN";
+
+      let userId: string | null = null;
+
+      try {
+        // Lookup by customerId
+        if (customerId) {
+          const userQuery = await admin
+            .firestore()
+            .collection("users")
+            .where("xenditCustomerId", "==", customerId)
+            .limit(1)
+            .get();
+
+          if (!userQuery.empty) {
+            userId = userQuery.docs[0].id;
+          }
+        }
+
+        // Fallback: lookup via collectionGroup
+        if (!userId) {
+          const fallbackQuery = await admin
+            .firestore()
+            .collectionGroup("bank")
+            .where("tokenId", "==", tokenId)
+            .limit(1)
+            .get();
+
+          if (!fallbackQuery.empty) {
+            const refPath = fallbackQuery.docs[0].ref.path;
+            const parts = refPath.split("/");
+            userId = parts[1];
+          }
+        }
+      } catch (err) {
+        console.error("❌ Firestore lookup error:", err);
+        return res.status(500).send("Error resolving userId for bank token.");
       }
 
-      const userId = userQuery.docs[0].id;
-
-      await saveBankPaymentMethod(userId, {
-        tokenId,
-        channelCode,
-        status,
-        accountEmail: props.account_email || "unknown@example.com",
-        accountMobileNumber: props.account_mobile_number || "0000000000",
-        cardLastFour: props.card_last_four || "0000",
-        cardExpiry: props.card_expiry,
-        linkedAt: new Date(),
-      });
-
-      console.log(`✅ Bank payment method saved (account selected) for user ${userId}`);
-      return res.status(200).send("Bank account selection saved");
-    }
-
-    // ✅ Bank linking - final success
-    if (event === "linked_account_token.successful") {
-      const tokenId = data.id;
-      const channelCode = data.channel_code;
-      const customerId = data.customer_id;
-      const status = "SUCCESSFUL";
-      const props = data.properties || {};
-
-      const userQuery = await admin
-        .firestore()
-        .collection("users")
-        .where("xenditCustomerId", "==", customerId)
-        .limit(1)
-        .get();
-
-      if (userQuery.empty) {
-        console.warn(`❌ No user found with Xendit customerId: ${customerId}`);
-        return res.status(200).send("No matching user (test webhook logged)");
+      if (!userId) {
+        console.warn("❌ Could not resolve userId for token:", tokenId);
+        return res.status(200).send("No matching user (bank linking logged)");
       }
 
-      const userId = userQuery.docs[0].id;
+      const bankRef = admin
+        .firestore()
+        .collection("payment_methods")
+        .doc(userId)
+        .collection("bank")
+        .doc(tokenId);
 
-      await saveBankPaymentMethod(userId, {
-        tokenId,
-        channelCode,
-        status,
-        accountEmail: props.account_email || "unknown@example.com",
-        accountMobileNumber: props.account_mobile_number || "0000000000",
-        cardLastFour: props.card_last_four || "0000",
-        cardExpiry: props.card_expiry,
-        linkedAt: new Date(),
-      });
+      let cardLastFour = props?.card_last_four ?? null;
+      let cardExpiry = props?.card_expiry ?? null;
 
-      console.log(`✅ Bank payment method saved (successful linking) for user ${userId}`);
-      return res.status(200).send("Bank payment method saved");
+      try {
+        const savedDoc = await bankRef.get();
+        if (!cardLastFour || !cardExpiry) {
+          const saved = savedDoc.exists ? savedDoc.data() : {};
+          cardLastFour = cardLastFour ?? saved?.cardLastFour ?? "0000";
+          cardExpiry = cardExpiry ?? saved?.cardExpiry ?? "00/00";
+        }
+
+        const updatePayload = {
+          status,
+          cardLastFour,
+          cardExpiry,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        if (savedDoc.exists) {
+          await bankRef.set(updatePayload, { merge: true });
+          console.log(`🔁 Updated bank method ${tokenId} to status ${status}`);
+        } else {
+          await saveBankPaymentMethod(userId, {
+            tokenId,
+            channelCode,
+            status,
+            accountEmail: props?.account_email ?? "unknown@example.com",
+            accountMobileNumber: props?.account_mobile_number ?? "0000000000",
+            cardLastFour,
+            cardExpiry,
+            linkedAt: new Date(),
+          });
+          console.log(`🆕 Created new bank method ${tokenId}`);
+        }
+
+        return res.status(200).send("Bank payment method processed");
+      } catch (err) {
+        console.error("❌ Failed to save bank method:", err);
+        return res.status(500).send("Failed to save bank payment method.");
+      }
     }
 
-    // ✅ GCash payment success
+    // ✅ Payment success (eWallet/charge)
     const validSuccessEvents = ["ewallet.charge.success", "charge.success", "ewallet.capture"];
     if (validSuccessEvents.includes(event) && data?.status === "SUCCEEDED") {
       const chargeId = data.id;
       const referenceId = data.reference_id;
 
       if (!referenceId || !referenceId.startsWith("preorder-")) {
-        console.error("❌ Invalid or missing reference_id:", referenceId);
+        console.error("❌ Invalid reference_id:", referenceId);
         return res.status(400).json({ error: "Invalid reference_id format" });
       }
 
